@@ -7,19 +7,32 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { SharedModule } from './shared/shared.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user/user.module';
+import { OtpModule } from './modules/otp/otp.module';
+import { CategoryModule } from './modules/categories/category.module';
+import { RecipeModule } from './modules/recipes/recipe.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env'}),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
-      useFactory: (configService: ConfigService) => databaseConfig(configService),
+      useFactory: (configService: ConfigService) =>
+        databaseConfig(configService),
       inject: [ConfigService],
     }),
-    SharedModule
+    SharedModule,
+    AuthModule,
+    UserModule,
+    OtpModule,
+    CategoryModule,
+    RecipeModule,
+    AdminModule
   ],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
