@@ -1,0 +1,227 @@
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+export const blogs: any[] = [
+  {
+    title: 'Crochet Projects for Noodle Lovers',
+    slug: slugify('Crochet Projects for Noodle Lovers'),
+    image_url: 'https://res.cloudinary.com/dmdzyoslx/image/upload/v1764171867/my_images/qcgvcjwgguhvbt8ostwz.png',
+    content: [
+      { heading: 'Introduction', body: 'Quick, cozy crochet projects that pair perfectly with a warm bowl of noodles.', image: '' },
+      { heading: 'Materials', body: 'List of yarns, hooks and simple patterns for beginners.', image: '' },
+      { heading: 'Top Patterns', body: 'Step-by-step for 3 easy noodle-themed projects.', image: '' },
+    ],
+    notes: 'Fun, easy patterns for beginners and noodle fans.',
+    is_active: true,
+    created_at: '2024-11-01T09:00:00Z',
+  },
+  {
+    title: '10 Vegetarian Recipes To Eat This Month',
+    slug: slugify('10 Vegetarian Recipes To Eat This Month'),
+    image_url: 'https://picsum.photos/seed/veg/800/600',
+    content: [
+      { heading: 'Seasonal Picks', body: 'Ten fresh, seasonal vegetarian recipes to try this month.', image: '' },
+      { heading: 'Weekly Menu', body: 'Planner and shopping list included.', image: '' },
+    ],
+    notes: 'Balanced vegetarian meals for busy schedules.',
+    is_active: true,
+    created_at: '2024-10-12T10:30:00Z',
+  },
+  {
+    title: 'Full Guide to Becoming a Professional Chef',
+    slug: slugify('Full Guide to Becoming a Professional Chef'),
+    image_url: 'https://picsum.photos/seed/chef/1200/800',
+    content: [
+      { heading: 'Pathways', body: 'From culinary school to apprenticeships and restaurant experience.', image: '' },
+      { heading: 'Skills', body: 'Knife skills, menu development and kitchen management.', image: '' },
+      { heading: 'Career Tips', body: 'How to network and build a portfolio.', image: '' },
+    ],
+    notes: 'A practical guide for aspiring chefs.',
+    is_active: true,
+    created_at: '2024-09-18T14:00:00Z',
+  },
+  {
+    title: 'Simple & Delicious Vegetarian Lasagna',
+    slug: slugify('Simple & Delicious Vegetarian Lasagna'),
+    image_url: 'https://picsum.photos/seed/lasagna/800/600',
+    content: [
+      { heading: 'Overview', body: 'A lighter, veggie-forward twist on a classic lasagna.', image: '' },
+      { heading: 'Ingredients', body: 'Suggested substitutes for gluten-free and dairy-free diets.', image: '' },
+      { heading: 'Baking Tips', body: 'How to get a creamy center and crispy edges.', image: '' },
+    ],
+    notes: 'Great for batch cooking and freezing.',
+    is_active: true,
+    created_at: '2024-08-05T08:15:00Z',
+  },
+  {
+    title: 'Plantain and Pinto Stew with Aji Verde',
+    slug: slugify('Plantain and Pinto Stew with Aji Verde'),
+    image_url: 'https://picsum.photos/seed/stew/800/600',
+    content: [
+      { heading: 'Flavor Profile', body: 'Comforting stew with bright spicy sauce.', image: '' },
+      { heading: 'Recipe', body: 'Step-by-step instructions and serving suggestions.', image: '' },
+    ],
+    notes: 'Vegetarian-friendly and packed with flavor.',
+    is_active: true,
+    created_at: '2024-07-22T12:00:00Z',
+  },
+  {
+    title: 'We’re Hiring a Communications Assistant!',
+    slug: slugify('We’re Hiring a Communications Assistant!'),
+    image_url: 'https://picsum.photos/seed/hiring/800/600',
+    content: [
+      { heading: 'About the Role', body: 'Part-time communications assistant for editorial team.', image: '' },
+      { heading: 'How to Apply', body: 'Submission requirements and timeline.', image: '' },
+    ],
+    notes: 'Remote-friendly role; applicants welcome from all timezones.',
+    is_active: true,
+    created_at: '2024-06-30T09:00:00Z',
+  },
+  {
+    title: 'Weeknight Meals: 5 Recipes Under 30 Minutes',
+    slug: slugify('Weeknight Meals: 5 Recipes Under 30 Minutes'),
+    image_url: 'https://picsum.photos/seed/quickmeals/800/600',
+    content: [
+      { heading: 'Quick Staples', body: 'Five reliable recipes that use pantry staples.', image: '' },
+      { heading: 'Time-saving Hacks', body: 'Prep tips to shave minutes off dinner.', image: '' },
+    ],
+    notes: 'Perfect for busy weekdays.',
+    is_active: true,
+    created_at: '2024-05-11T18:45:00Z',
+  },
+  {
+    title: 'How to Style Food Photos at Home',
+    slug: slugify('How to Style Food Photos at Home'),
+    image_url: 'https://picsum.photos/seed/foodphoto/800/600',
+    content: [
+      { heading: 'Lighting', body: 'Natural light setups and simple reflectors.', image: '' },
+      { heading: 'Composition', body: 'Plating and angles that work every time.', image: '' },
+    ],
+    notes: 'No fancy gear required—just practice and patience.',
+    is_active: true,
+    created_at: '2024-04-01T07:20:00Z',
+  },
+  {
+    title: 'Fermentation Basics: Make Your Own Kimchi',
+    slug: slugify('Fermentation Basics: Make Your Own Kimchi'),
+    image_url: 'https://picsum.photos/seed/kimchi/800/600',
+    content: [
+      { heading: 'Safety First', body: 'Sanitation and fermentation timelines.', image: '' },
+      { heading: 'Recipe', body: 'Classic kimchi with optional spice adjustments.', image: '' },
+    ],
+    notes: 'Beginner-friendly fermentation guide.',
+    is_active: true,
+    created_at: '2024-03-25T11:10:00Z',
+  },
+  {
+    title: 'Baking Bread Without a Mixer',
+    slug: slugify('Baking Bread Without a Mixer'),
+    image_url: 'https://picsum.photos/seed/bread/800/600',
+    content: [
+      { heading: 'Techniques', body: 'Hand-kneading and folding for great gluten development.', image: '' },
+      { heading: 'Recipes', body: 'No-knead and simple artisan loaves.', image: '' },
+    ],
+    notes: 'Low-tech methods for delicious results.',
+    is_active: true,
+    created_at: '2024-02-14T06:00:00Z',
+  },
+  {
+    title: 'Seasonal Salads: Spring Greens Guide',
+    slug: slugify('Seasonal Salads: Spring Greens Guide'),
+    image_url: 'https://picsum.photos/seed/salad/800/600',
+    content: [
+      { heading: 'Greens to Use', body: 'Best spring lettuces and herbs.', image: '' },
+      { heading: 'Dressings', body: 'Bright vinaigrettes to complement seasonal produce.', image: '' },
+    ],
+    notes: 'Light, fresh and perfect for picnics.',
+    is_active: true,
+    created_at: '2024-03-05T09:00:00Z',
+  },
+  {
+    title: 'Guide to Making the Perfect Stock',
+    slug: slugify('Guide to Making the Perfect Stock'),
+    image_url: 'https://picsum.photos/seed/stock/800/600',
+    content: [
+      { heading: 'Types of Stock', body: 'Vegetable, chicken and beef basics.', image: '' },
+      { heading: 'Concentration Tips', body: 'How to reduce and store for later use.', image: '' },
+    ],
+    notes: 'A foundation recipe every cook should master.',
+    is_active: true,
+    created_at: '2024-01-20T13:30:00Z',
+  },
+  {
+    title: 'Comfort Food: The Best Meatloaf Recipe',
+    slug: slugify('Comfort Food: The Best Meatloaf Recipe'),
+    image_url: 'https://picsum.photos/seed/meatloaf/800/600',
+    content: [
+      { heading: 'Ingredients', body: 'Tips for juiciness and flavor balance.', image: '' },
+      { heading: 'Baking', body: 'Temperature and glaze suggestions.', image: '' },
+    ],
+    notes: 'Classic comfort food with modern twists.',
+    is_active: true,
+    created_at: '2023-12-10T16:00:00Z',
+  },
+  {
+    title: 'Vegan Desserts That Impress',
+    slug: slugify('Vegan Desserts That Impress'),
+    image_url: 'https://picsum.photos/seed/vegandessert/800/600',
+    content: [
+      { heading: 'Egg Replacements', body: 'How to use aquafaba and flax in baking.', image: '' },
+      { heading: 'Decadent Recipes', body: 'Chocolate torte and panna cotta alternatives.', image: '' },
+    ],
+    notes: 'Desserts that win over vegans and non-vegans alike.',
+    is_active: true,
+    created_at: '2023-11-02T10:00:00Z',
+  },
+  {
+    title: 'Meal Prep for Busy Professionals',
+    slug: slugify('Meal Prep for Busy Professionals'),
+    image_url: 'https://picsum.photos/seed/mealprep/800/600',
+    content: [
+      { heading: 'Planning', body: 'Batch cooking and storage strategies.', image: '' },
+      { heading: 'Recipes', body: '5 weekday-friendly lunches.', image: '' },
+    ],
+    notes: 'Save time and eat well all week.',
+    is_active: true,
+    created_at: '2023-10-05T08:00:00Z',
+  },
+  {
+    title: 'Exploring Regional Spices: A Beginner’s Guide',
+    slug: slugify('Exploring Regional Spices: A Beginner’s Guide'),
+    image_url: 'https://picsum.photos/seed/spices/800/600',
+    content: [
+      { heading: 'Spice Profiles', body: 'How to use spices from different cuisines.', image: '' },
+      { heading: 'Blends', body: 'Simple blends to keep in your pantry.', image: '' },
+    ],
+    notes: 'Learn to build depth with spice layering.',
+    is_active: true,
+    created_at: '2023-09-15T12:00:00Z',
+  },
+  {
+    title: 'Hosting a Dinner Party on a Budget',
+    slug: slugify('Hosting a Dinner Party on a Budget'),
+    image_url: 'https://picsum.photos/seed/dinnerparty/800/600',
+    content: [
+      { heading: 'Menu Planning', body: 'Affordable dishes that scale well.', image: '' },
+      { heading: 'Presentation', body: 'Plate like a pro without breaking the bank.', image: '' },
+    ],
+    notes: 'Entertain without overspending.',
+    is_active: true,
+    created_at: '2023-08-01T19:00:00Z',
+  },
+  {
+    title: 'Zero Waste Kitchen Tips',
+    slug: slugify('Zero Waste Kitchen Tips'),
+    image_url: 'https://picsum.photos/seed/zerowaste/800/600',
+    content: [
+      { heading: 'Reduce & Reuse', body: 'Smart ways to minimize food waste and repurpose scraps.', image: '' },
+      { heading: 'Storage', body: 'Proper storage to extend shelf life.', image: '' },
+    ],
+    notes: 'Small changes, big impact for sustainability.',
+    is_active: true,
+    created_at: '2023-07-10T07:45:00Z',
+  },
+];

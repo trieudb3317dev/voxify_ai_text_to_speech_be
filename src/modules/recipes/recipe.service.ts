@@ -191,8 +191,14 @@ export class RecipeService {
     req: any,
   ): Promise<{ message: string }> {
     try {
-      const { title, image_url, description, category_id, user_id, detail } =
-        recipeData;
+      const { title, image_url, description, category_id, detail } = recipeData;
+
+      if (!req || !req.id) {
+        throw new HttpException(
+          'You are not authorized',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
 
       const slug = title
         .toLowerCase()
@@ -200,12 +206,11 @@ export class RecipeService {
         .replace(/[^\w-]+/g, '');
 
       const existingUser = await this.adminRepository.findOne({
-        where: { id: req.sub, is_active: false },
+        where: { id: req.id, is_active: false },
       });
       if (!existingUser) {
         throw new HttpException('You are not admin', HttpStatus.NOT_FOUND);
       }
-      console.log('existingUser', existingUser);
       const existingRecipe = await this.recipeRepository.findOne({
         where: { title: title, is_active: false },
       });
@@ -248,7 +253,7 @@ export class RecipeService {
         image_url,
         description,
         category,
-        admin: user_id || req.sub ? existingUser : null, // Assign the user appropriately
+        admin: req.id ?? existingUser, // Assign the user appropriately
       });
       await this.recipeRepository.save(newRecipe);
 

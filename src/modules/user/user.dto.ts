@@ -19,6 +19,10 @@ export class UpdateUserDto {
     full_name?: string;
 
     @IsOptional()
+    @IsString({ message: 'Avatar must be a string' })
+    avatar?: string;
+
+    @IsOptional()
     @IsEnum(['male', 'female', 'other'], { message: 'Gender must be male, female, or other' })
     gender?: 'male' | 'female' | 'other';
 
@@ -61,6 +65,7 @@ export class UserResponseDto {
     id: number;
     username: string;
     full_name?: string;
+    avatar?: string;
     gender?: 'male' | 'female' | 'other';
     day_of_birth?: Date;
     email: string;

@@ -2,8 +2,8 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { User } from '../../user/user.entity';
 import { AdminService } from '../admin.service';
+import { Admin } from '../admin.entity';
 
 @Injectable()
 export class JwtAdminStrategy extends PassportStrategy(
@@ -27,12 +27,12 @@ export class JwtAdminStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: any): Promise<User | null> {
+  async validate(payload: any): Promise<Admin | null> {
     try {
       const { role } = payload;
       if (!role) {
         throw new HttpException(
-          'You are not authorized',
+          'You are not role admin. You can not access this resource',
           HttpStatus.UNAUTHORIZED,
         );
       }

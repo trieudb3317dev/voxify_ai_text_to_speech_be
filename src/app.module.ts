@@ -13,6 +13,7 @@ import { OtpModule } from './modules/otp/otp.module';
 import { CategoryModule } from './modules/categories/category.module';
 import { RecipeModule } from './modules/recipes/recipe.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { BlogModule } from './modules/blogs/blog.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { AdminModule } from './modules/admin/admin.module';
     OtpModule,
     CategoryModule,
     RecipeModule,
-    AdminModule
+    AdminModule,
+    BlogModule
   ],
   controllers: [AppController],
   providers: [AppService],

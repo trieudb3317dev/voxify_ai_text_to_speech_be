@@ -26,6 +26,10 @@ export class UpdateAdminDto {
   full_name?: string;
 
   @IsOptional()
+  @IsString({ message: 'Avatar must be a string' })
+  avatar?: string;
+
+  @IsOptional()
   @IsEnum(['male', 'female', 'other'], {
     message: 'Gender must be male, female, or other',
   })
@@ -61,6 +65,7 @@ export class AdminResponseDto {
   id: number;
   username: string;
   full_name?: string;
+  avatar?: string;
   gender?: 'male' | 'female' | 'other';
   role: 'super_admin' | 'admin' | 'moderator' | 'editor';
   day_of_birth?: Date;

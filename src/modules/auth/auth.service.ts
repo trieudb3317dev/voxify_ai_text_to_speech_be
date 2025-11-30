@@ -67,6 +67,12 @@ export class AuthService {
       const user = await this.userRepository.findOne({
         where: { username: loginDto.username },
       });
+      if (!user) {
+        throw new HttpException(
+          `Coundn't find user into system: ${loginDto.username}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const passwordIsValid = user
         ? bcrypt.compareSync(loginDto.password, user.password)
         : false;
@@ -90,6 +96,43 @@ export class AuthService {
       this.logger.error(
         `Login failed for user ${loginDto.username}: ${error.message}`,
       );
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async refreshToken(
+    refreshToken: string,
+    response: Response,
+  ): Promise<{ message: string }> {
+    try {
+      if (!refreshToken) {
+        throw new HttpException(
+          'Refresh token is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const decodedToken = this.jwtService.decode(refreshToken);
+      const { username } = decodedToken as any;
+      const user = await this.userRepository.findOne({
+        where: { username },
+      });
+      if (!user) {
+        throw new HttpException(
+          'Invalid refresh token',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const payload: PayloadDto = { username: user.username, id: user.id };
+      this.generateAccessToken(payload, response);
+      this.generateRefreshToken(payload, response);
+      return { message: 'Refresh token generated successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,

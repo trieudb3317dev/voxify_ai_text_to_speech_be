@@ -1,9 +1,9 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 
-enum GenderType {
-    Male = "male",
-    Female = "female",
-    Other = "other"
+export enum GenderType {
+    MALE = "male",
+    FEMALE = "female",
+    OTHER = "other"
 }
 
 @Entity('users')
@@ -18,6 +18,9 @@ export class User {
 
     @Column({ nullable: true })
     full_name: string;
+
+    @Column({ nullable: true })
+    avatar: string;
 
     @Column({ type: 'enum', enum: GenderType, nullable: true })
     gender: GenderType;

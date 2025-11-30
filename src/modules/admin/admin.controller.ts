@@ -4,18 +4,17 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Param,
   Post,
+  Put,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { AdminLoginDto, CreateAdminDto } from './admin.dto';
+import { AdminLoginDto, CreateAdminDto, UpdateAdminDto } from './admin.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAdminAuthGuard } from './guards/jwt-admin-auth.guard';
-import { Role } from '../type/role.enum';
-import { Roles } from './decorator/role.decorator';
 import { RoleGuard } from './guards/role.guard';
 
 @Controller('admin')
@@ -57,12 +56,28 @@ export class AdminController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   @HttpCode(HttpStatus.OK)
-  @Get('/:id/profile')
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN)
+  @Get('/me')
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  async profile(@Param('id') id: number) {
+  async profile(@Req() req: any) {
     // Implementation for retrieving admin profile
-    return this.adminService.profile(id);
+    const userId = req.user.id;
+    return this.adminService.profile(userId);
+  }
+
+  @ApiOperation({ summary: 'Update admin profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin profile updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Put()
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  async updateProfile(@Body() updatedData: UpdateAdminDto, @Req() req: any) {
+    // Implementation for updating admin profile
+    const userId = req.user.id;
+    return this.adminService.updateProfile(userId, updatedData);
   }
 
   @ApiOperation({ summary: 'Admin logout' })

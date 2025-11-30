@@ -3,7 +3,6 @@ export class RecipeDto<T> {
   image_url: string;
   description: string;
   category_id: number;
-  user_id: number;
   // Additional fields for recipe details
   detail: RecipeDetailDto;
 }

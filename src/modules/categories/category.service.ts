@@ -21,49 +21,29 @@ export class CategoryService {
     private recipeRepository: Repository<Recipe>,
   ) {}
 
-  async findAll(
-    query: QueryCategoryDto,
-  ): Promise<CategoryListResponse<RecipeSub>> {
+  async findAll(query: QueryCategoryDto): Promise<CategoryListResponse> {
     try {
       // normalize & validate paging params
+      let sortBy = query.sortBy || 'id';
+      let order: 'ASC' | 'DESC' =
+        query.order && query.order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
       let page = Number(query.page) || 1;
       let limit = Number(query.limit) || 10;
       if (!Number.isFinite(page) || page < 1) page = 1;
       if (!Number.isFinite(limit) || limit < 1) limit = 10;
       limit = Math.min(limit, 1000); // cap to avoid huge queries
 
-      const qb = this.categoryRepository
-        .createQueryBuilder('category')
-        .leftJoin('category.recipes', 'recipe')
-        // clearer filter for active categories
-        .where('category.is_active = :isActive', { isActive: false })
-        .select([
-          'category.id',
-          'category.name',
-          'category.slug',
-          'category.image_url',
-          'category.description',
-          'recipe.id',
-          'recipe.title',
-          'recipe.slug',
-          'recipe.image_url',
-        ]);
-
-      if (query.search) {
-        // case-insensitive search across DBs using LOWER(...)
-        qb.andWhere('LOWER(category.name) LIKE :name', {
-          name: `%${String(query.search).toLowerCase()}%`,
-        });
-      }
-
       const offset = (page - 1) * limit;
-      const [categories, total] = await qb
-        .skip(offset)
-        .take(limit)
-        .getManyAndCount();
 
-      // handle empty result set consistently
-      if (total === 0 || categories.length === 0) {
+      // Base count query for total categories matching filters (keeps pagination correct)
+      const countQb = this.categoryRepository
+        .createQueryBuilder('category')
+        .where('category.is_active = :isActive', { isActive: false });
+
+      const total = await countQb.getCount();
+
+      // If no categories, return empty pagination
+      if (total === 0) {
         return {
           data: [],
           pagination: {
@@ -71,18 +51,71 @@ export class CategoryService {
             page: 1,
             limit,
             totalPages: 0,
-            nextPage: null,
-            prevPage: null,
+            nextPage: false,
+            prevPage: false,
           },
         };
       }
 
-      const totalPages = Math.max(1, Math.ceil(total / limit));
-      // adjust page if it's out of range
-      if (page > totalPages) page = totalPages;
+      // Fetch paginated categories with recipe counts
+      const qb = this.categoryRepository
+        .createQueryBuilder('category')
+        // join recipes and count them per category; filter recipe active flag if needed
+        .leftJoin('category.recipes', 'recipe', 'recipe.is_active = false')
+        .select([
+          'category.id',
+          'category.name',
+          'category.slug',
+          'category.image_url',
+          'category.description',
+          'category.created_at',
+        ])
+        .addSelect('COUNT(recipe.id)', 'recipe_count')
+        .where('category.is_active = :isActive', { isActive: false });
 
-      const from = offset + 1;
-      const to = Math.min(offset + categories.length, total);
+      if (query.search) {
+        qb.andWhere('LOWER(category.name) LIKE :name', {
+          name: `%${String(query.search).toLowerCase()}%`,
+        });
+      }
+
+      // Validate sortBy against allowed fields to prevent injection
+      const allowedSortFields = new Set([
+        'id',
+        'name',
+        'slug',
+        'image_url',
+        'description',
+        'created_at',
+        'recipe_count',
+      ]);
+      let orderByExpr: string;
+      if (allowedSortFields.has(sortBy)) {
+        orderByExpr = sortBy === 'recipe_count' ? 'recipe_count' : `category.${sortBy}`;
+      } else {
+        orderByExpr = 'category.id';
+      }
+
+      qb.groupBy('category.id')
+        .orderBy(orderByExpr, order)
+        .limit(limit)
+        .offset(offset);
+
+      const rawRows = await qb.getRawMany();
+
+      // Map raw rows to return shape (convert recipe_count to number)
+      const categories = rawRows.map((r) => ({
+        id: r.category_id,
+        name: r.category_name,
+        slug: r.category_slug,
+        image_url: r.category_image_url,
+        description: r.category_description,
+        created_at: r.category_created_at,
+        recipe_count: Number(r.recipe_count || 0),
+      }));
+
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      if (page > totalPages) page = totalPages;
 
       return {
         data: categories,
@@ -91,8 +124,8 @@ export class CategoryService {
           page,
           limit,
           totalPages,
-          nextPage: page < totalPages ? page + 1 : null,
-          prevPage: page > 1 ? page - 1 : null,
+          nextPage: page < totalPages ? page + 1 : false,
+          prevPage: page > 1 ? page - 1 : false,
         },
       };
     } catch (error) {
@@ -106,23 +139,20 @@ export class CategoryService {
     }
   }
 
-  async findById(id: number): Promise<CategoryResponse<RecipeSub>> {
+  async findById(id: number): Promise<CategoryResponse> {
     try {
+      // fetch basic category fields
       const category = await this.categoryRepository
         .createQueryBuilder('category')
         .where('category.id = :id', { id })
         .andWhere('category.is_active = :isActive', { isActive: false })
-        .leftJoin('category.recipes', 'recipe')
         .select([
           'category.id',
           'category.name',
           'category.slug',
           'category.image_url',
           'category.description',
-          'recipe.id',
-          'recipe.title',
-          'recipe.slug',
-          'recipe.image_url',
+          'category.created_at',
         ])
         .getOne();
 
@@ -130,7 +160,17 @@ export class CategoryService {
         throw new HttpException('Category not found', HttpStatus.NOT_FOUND);
       }
 
-      return category;
+      // count recipes that belong to this category and match the active filter
+      const recipeCount = await this.recipeRepository
+        .createQueryBuilder('recipe')
+        .where('recipe."categoryId" = :categoryId', { categoryId: id })
+        .andWhere('recipe.is_active = :isActive', { isActive: false })
+        .getCount();
+
+      return {
+        ...category,
+        recipe_count: Number(recipeCount || 0),
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -183,7 +223,9 @@ export class CategoryService {
 
   async update(id: number, cateDto: CategoryDto): Promise<{ message: string }> {
     try {
-      const category = await this.categoryRepository.findOne({ where: { id, is_active: false } });
+      const category = await this.categoryRepository.findOne({
+        where: { id, is_active: false },
+      });
       if (!category) {
         throw new HttpException('Category not found', HttpStatus.NOT_FOUND);
       }

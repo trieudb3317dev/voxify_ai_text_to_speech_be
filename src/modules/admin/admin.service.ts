@@ -8,9 +8,11 @@ import {
   AdminResponseDto,
   CreateAdminDto,
   PayloadDto,
+  UpdateAdminDto,
 } from './admin.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { GenderType } from '../user/user.entity';
 
 @Injectable()
 export class AdminService {
@@ -159,6 +161,7 @@ export class AdminService {
         id: user.id,
         username: user.username,
         full_name: user.full_name,
+        avatar: user.avatar,
         gender: user.gender,
         role: user.role,
         day_of_birth: user.day_of_birth,
@@ -176,6 +179,36 @@ export class AdminService {
       );
     }
   }
+
+  async updateProfile(
+      userId: number,
+      updatedData: UpdateAdminDto,
+    ): Promise<{ message: string } | Admin> {
+      try {
+        const user = await this.adminRepository.findOne({ where: { id: userId } });
+        if (!user) {
+          throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        }
+        await this.adminRepository.update(userId, {
+          ...updatedData,
+          full_name: updatedData.full_name ?? user.full_name,
+          avatar: updatedData.avatar ?? user.avatar,
+          gender:
+            GenderType[updatedData.gender?.toUpperCase()] ?? user.gender,
+          day_of_birth: updatedData.day_of_birth ?? user.day_of_birth,
+          phone_number: updatedData.phone_number ?? user.phone_number,
+        });
+        return { message: 'User profile updated successfully' };
+      } catch (error) {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        throw new HttpException(
+          `Internal server error: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
 
   private generateAccessToken(user: PayloadDto, response: Response): string {
     const payload = { username: user.username, role: user.role, sub: user.id };

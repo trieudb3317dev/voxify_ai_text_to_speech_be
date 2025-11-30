@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
-import { UserResponseDto } from './user.dto';
+import { GenderType, User } from './user.entity';
+import { UpdateUserDto, UserResponseDto } from './user.dto';
 
 @Injectable()
 export class UserService {
@@ -12,10 +12,13 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async profile(userId: number): Promise<UserResponseDto> {
+  async profile(req: any): Promise<UserResponseDto> {
     try {
+      if (!req || !req.id) {
+        throw new HttpException('Invalid request', HttpStatus.BAD_REQUEST);
+      }
       const user = await this.userRepository.findOne({
-        where: { id: userId, is_active: false },
+        where: { id: req.id, is_active: false },
       });
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -24,6 +27,7 @@ export class UserService {
         id: user.id,
         username: user.username,
         full_name: user.full_name,
+        avatar: user.avatar,
         gender: user.gender,
         day_of_birth: user.day_of_birth,
         email: user.email,
@@ -35,7 +39,7 @@ export class UserService {
         throw error;
       }
       throw new HttpException(
-        'Failed to fetch user profile',
+        `Internal server error: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -43,21 +47,29 @@ export class UserService {
 
   async updateProfile(
     userId: number,
-    updatedData: Partial<User>,
-  ): Promise<User> {
+    updatedData: UpdateUserDto,
+  ): Promise<{ message: string } | User> {
     try {
       const user = await this.userRepository.findOne({ where: { id: userId } });
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
-      await this.userRepository.update(userId, updatedData);
-      return this.userRepository.findOne({ where: { id: userId } });
+      await this.userRepository.update(userId, {
+        ...updatedData,
+        full_name: updatedData.full_name ?? user.full_name,
+        avatar: updatedData.avatar ?? user.avatar,
+        gender:
+          GenderType[updatedData.gender?.toUpperCase()] ?? user.gender,
+        day_of_birth: updatedData.day_of_birth ?? user.day_of_birth,
+        phone_number: updatedData.phone_number ?? user.phone_number,
+      });
+      return { message: 'User profile updated successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
       throw new HttpException(
-        'Failed to update user profile',
+        `Internal server error: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

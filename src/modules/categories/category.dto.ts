@@ -38,17 +38,18 @@ export class PaginationResponse {
   page: number;
   limit: number;
   totalPages: number;
-  nextPage: number | null;
-  prevPage: number | null;
+  nextPage: number | boolean;
+  prevPage: number | boolean;
 }
 
-export class CategoryResponse<T> {
+export class CategoryResponse {
   id: number;
   name: string;
   slug: string;
   image_url: string;
   description: string;
-  recipes: T[];
+  recipe_count: number;
+  created_at: Date;
 }
 
 export class RecipeSub {
@@ -58,7 +59,7 @@ export class RecipeSub {
   image_url: string;
 }
 
-export class CategoryListResponse<T> {
-  data: CategoryResponse<T>[];
+export class CategoryListResponse {
+  data: CategoryResponse[];
   pagination: PaginationResponse;
 }

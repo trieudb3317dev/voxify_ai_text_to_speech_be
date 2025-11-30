@@ -1,4 +1,10 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Recipe } from '../recipes/recipe.entity';
 
 @Entity('categories')
@@ -27,4 +33,10 @@ export class Category {
 
   @Column({ default: false })
   is_active: boolean;
+
+  @CreateDateColumn({
+    type: 'timestamptz', 
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  created_at: Date;
 }

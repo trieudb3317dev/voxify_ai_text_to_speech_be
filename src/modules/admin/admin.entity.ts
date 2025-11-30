@@ -6,13 +6,13 @@ import {
 } from 'typeorm';
 
 enum GenderType {
-  Male = 'male',
-  Female = 'female',
-  Other = 'other',
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
 }
 
 enum AdminRole {
-  SUPPER_ADMIN = 'super_admin',
+  SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   MODERATOR = 'moderator',
   EDITOR = 'editor',
@@ -30,6 +30,9 @@ export class Admin {
 
   @Column({ nullable: true })
   full_name: string;
+
+  @Column({ nullable: true })
+  avatar: string;
 
   @Column({ type: 'enum', enum: GenderType, nullable: true })
   gender: GenderType;

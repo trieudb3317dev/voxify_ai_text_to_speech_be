@@ -10,7 +10,7 @@ export const databaseConfig = (configService: ConfigService): TypeOrmModuleOptio
     password: configService.get('DB_PASSWORD', 'postgres'),
     database: configService.get('DB_DATABASE', 'my_project'),
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: true,
+    synchronize: false,
     logging: false
   };
 };

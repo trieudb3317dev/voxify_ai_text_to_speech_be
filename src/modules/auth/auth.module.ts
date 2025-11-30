@@ -8,7 +8,6 @@ import { Otp } from "../otp/otp.entity";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { SharedModule } from "src/shared/shared.module";
 import { JwtStrategy } from "./strategies/jwt-auth.strategy";
-import { AdminModule } from "../admin/admin.module";
 
 @Module({
     imports: [
@@ -23,8 +22,7 @@ import { AdminModule } from "../admin/admin.module";
             }),
             inject: [ConfigService],
         }),
-        SharedModule,
-        AdminModule
+        SharedModule
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtService, JwtStrategy],
