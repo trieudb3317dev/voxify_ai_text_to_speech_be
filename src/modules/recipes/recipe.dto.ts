@@ -64,8 +64,8 @@ export class PaginationResponse {
   page: number;
   limit: number;
   totalPages: number;
-  nextPage: number | null;
-  prevPage: number | null;
+  nextPage: number | boolean;
+  prevPage: number | boolean;
 }
 
 export class RecipeListResponse<T> {

@@ -34,4 +34,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 8080
 
 # Lệnh khởi động app ở chế độ production
-CMD ["npm", "run", "start:prod"]
+CMD ["npm", "run", "start:prod"] 

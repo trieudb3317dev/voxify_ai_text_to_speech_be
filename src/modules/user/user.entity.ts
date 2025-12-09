@@ -1,48 +1,61 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Wishlist } from 'src/whistlist/whistlist.entity';
 
 export enum GenderType {
-    MALE = "male",
-    FEMALE = "female",
-    OTHER = "other"
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
 }
 
 @Entity('users')
 export class User {
-    // Define user entity properties here
-    @PrimaryGeneratedColumn()
-    id: number;
+  // Define user entity properties here
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    // Add other properties like name, email, etc.
-    @Column({ unique: true })
-    username: string;
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.users, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  wishlists: Wishlist[] | null;
 
-    @Column({ nullable: true })
-    full_name: string;
+  // Add other properties like name, email, etc.
+  @Column({ unique: true })
+  username: string;
 
-    @Column({ nullable: true })
-    avatar: string;
+  @Column({ nullable: true })
+  full_name: string;
 
-    @Column({ type: 'enum', enum: GenderType, nullable: true })
-    gender: GenderType;
+  @Column({ nullable: true })
+  avatar: string;
 
-    @Column({ nullable: true })
-    day_of_birth: Date;
+  @Column({ type: 'enum', enum: GenderType, nullable: true })
+  gender: GenderType;
 
-    @Column({ unique: true })
-    email: string;
+  @Column({ nullable: true })
+  day_of_birth: Date;
 
-    @Column({ nullable: false })
-    password: string;
+  @Column({ unique: true })
+  email: string;
 
-    @Column({ nullable: true })
-    phone_number: string;
+  @Column({ nullable: false })
+  password: string;
 
-    @Column({ default: false })
-    is_verified: boolean;
+  @Column({ nullable: true })
+  phone_number: string;
 
-    @Column({ default: false })
-    is_active: boolean;
+  @Column({ default: false })
+  is_verified: boolean;
 
-    @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+  @Column({ default: false })
+  is_active: boolean;
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
 }

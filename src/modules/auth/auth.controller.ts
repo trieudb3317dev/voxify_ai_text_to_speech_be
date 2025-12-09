@@ -48,7 +48,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @Post('refresh-token')
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refreshToken(
     @Req() request: any,
@@ -59,18 +59,18 @@ export class AuthController {
     return this.authService.refreshToken(refreshToken, response);
   }
 
-  @Post('forgot-password')
+  @Post('send-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Forgot password' })
+  @ApiOperation({ summary: 'Send OTP for password reset' })
   @ApiResponse({
     status: 200,
-    description: 'Password reset initiated successfully',
+    description: 'OTP sent successfully',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
-  async forgotPassword(@Body('email') email: string) {
-    // Implement forgot password controller method here
-    return this.authService.forgotPassword(email);
+  async sendOtp(@Body('email') email: string) {
+    // Implement send OTP controller method here
+    return this.authService.sendOtp(email);
   }
 
   @Post('reset-password')
@@ -86,7 +86,6 @@ export class AuthController {
       reset_token,
       new_password,
     }: { otp: string; reset_token: string; new_password: string },
-    @Req() request: any,
   ) {
     // Implement reset password controller method here
     return this.authService.resetPassword(reset_token, new_password, otp);

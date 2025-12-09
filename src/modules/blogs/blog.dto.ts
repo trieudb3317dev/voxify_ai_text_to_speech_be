@@ -43,6 +43,7 @@ export class BlogResponse<T> {
   image_url: string;
   created_at: Date;
   content?: T;
+  notes?: string;
   admin: {
     id: number;
     username: string;

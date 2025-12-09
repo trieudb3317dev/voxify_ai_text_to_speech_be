@@ -33,6 +33,7 @@ export class BlogService {
           'blog.slug',
           'blog.image_url',
           'blog.created_at',
+          'blog.notes',
           'admin.id',
           'admin.username',
           'admin.avatar',
@@ -76,6 +77,7 @@ export class BlogService {
           image_url: blog.image_url,
           content: blog.content,
           created_at: blog.created_at,
+          notes: blog.notes,
           admin: {
             id: blog.admin.id,
             username: blog.admin.username,
@@ -111,6 +113,7 @@ export class BlogService {
           'blog.image_url',
           'blog.content',
           'blog.created_at',
+          'blog.notes',
           'admin.id',
           'admin.username',
           'admin.avatar',
@@ -129,6 +132,7 @@ export class BlogService {
         image_url: blog.image_url,
         content: blog.content,
         created_at: blog.created_at,
+        notes: blog.notes,
         admin: {
           id: blog.admin.id,
           username: blog.admin.username,

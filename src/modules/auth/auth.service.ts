@@ -140,7 +140,7 @@ export class AuthService {
     }
   }
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async sendOtp(email: string): Promise<{ message: string }> {
     try {
       // Implement forgot password logic here
       const existingUser = await this.userRepository.findOne({
@@ -206,6 +206,24 @@ export class AuthService {
       if (!resetToken) {
         throw new HttpException(
           'Reset token is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const existingOtp = await this.otpRepository.findOne({
+        where: { code: otp },
+        relations: ['user'],
+      });
+      if (!existingOtp || existingOtp.expires_at < new Date()) {
+        throw new HttpException(
+          'Invalid or expired OTP',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        existingOtp.user.id !== (this.jwtService.decode(resetToken) as any).sub
+      ) {
+        throw new HttpException(
+          'OTP does not match the user',
           HttpStatus.BAD_REQUEST,
         );
       }
