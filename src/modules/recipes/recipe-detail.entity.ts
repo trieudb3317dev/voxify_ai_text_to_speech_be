@@ -13,9 +13,10 @@ export class RecipeDetail {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // Owning side: holds recipe_id FK
   @OneToOne(() => Recipe, (recipe) => recipe.id, {
     onDelete: 'CASCADE',
-    nullable: false,
+    nullable: true,
   })
   @JoinColumn({ name: 'recipe_id', referencedColumnName: 'id' })
   recipe: Recipe;

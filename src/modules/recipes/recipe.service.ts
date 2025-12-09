@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Recipe } from './recipe.entity';
@@ -18,10 +19,12 @@ import { RecipeDetail } from './recipe-detail.entity';
 import { Category } from '../categories/category.entity';
 import { User } from '../user/user.entity';
 import { Admin } from '../admin/admin.entity';
+import { Wishlist } from 'src/whistlist/whistlist.entity';
 
 @Injectable()
 export class RecipeService {
   // Implement recipe service methods here
+  private readonly logger = new Logger(RecipeService.name);
   constructor(
     @InjectRepository(Recipe)
     private readonly recipeRepository: Repository<Recipe>,
@@ -33,6 +36,8 @@ export class RecipeService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
+    @InjectRepository(Wishlist)
+    private readonly wishlistRepository: Repository<Wishlist>,
   ) {}
 
   async findAll(query: QueryRecipeDto): Promise<RecipeListResponse<any>> {
@@ -72,8 +77,8 @@ export class RecipeService {
         .getManyAndCount();
 
       const totalPages = Math.ceil(total / Number(limit));
-      const nextPage = Number(page) < totalPages ? Number(page) + 1 : null;
-      const prevPage = Number(page) > 1 ? Number(page) - 1 : null;
+      const nextPage = Number(page) < totalPages ? Number(page) + 1 : false;
+      const prevPage = Number(page) > 1 ? Number(page) - 1 : false;
 
       if (!recipes.length) {
         return {
@@ -89,8 +94,162 @@ export class RecipeService {
         };
       }
 
+      // ----- NEW: load detail fields for returned recipes -----
+      const recipeIds = recipes.map((r) => r.id);
+      const detailRows = await this.recipeDetailRepository
+        .createQueryBuilder('detail')
+        .where('detail.recipe_id IN (:...ids)', { ids: recipeIds })
+        .andWhere('detail.is_active = :isActive', { isActive: false })
+        .select([
+          'detail.recipe_id as recipe_id',
+          'detail.recipe_video as recipe_video',
+          'detail.time_preparation as time_preparation',
+          'detail.time_cooking as time_cooking',
+          'detail.recipe_type as recipe_type',
+        ])
+        .getRawMany();
+
+      const detailMap: Record<number, any> = {};
+      detailRows.forEach((d) => {
+        detailMap[Number(d.recipe_id)] = {
+          recipe_video: d.recipe_video,
+          time_preparation: d.time_preparation,
+          time_cooking: d.time_cooking,
+          recipe_type: d.recipe_type,
+        };
+      });
+
+      // Attach detail to each recipe
+      const recipesWithDetail = recipes.map((r) => ({
+        ...r,
+        detail: detailMap[r.id] || null,
+      }));
+      // ----- END NEW -----
+
       return {
-        data: recipes,
+        data: recipesWithDetail,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages,
+          nextPage,
+          prevPage,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get all recipes full details
+   */
+
+  async findAllFullDetail(query: QueryRecipeDto): Promise<RecipeListResponse<any>> {
+    try {
+      const { page = 1, limit = 10, search, sortBy, order } = query;
+      const qb = this.recipeRepository
+        .createQueryBuilder('recipe')
+        .leftJoin('recipe.category', 'category')
+        .leftJoin('recipe.admin', 'admin')
+        .where('recipe.is_active = :isActive', { isActive: false })
+        .select([
+          'recipe.id',
+          'recipe.title',
+          'recipe.slug',
+          'recipe.image_url',
+          'category.id',
+          'category.name',
+          'admin.id',
+          'admin.username',
+          'admin.role',
+        ]);
+
+      // Apply sorting
+      if (sortBy && order) {
+        qb.orderBy(`recipe.${sortBy}`, order);
+      }
+
+      if (search) {
+        qb.andWhere('LOWER(recipe.title) LIKE :title', {
+          title: `%${String(search).toLowerCase()}%`,
+        });
+      }
+
+      const [recipes, total] = await qb
+        .skip((Number(page) - 1) * Number(limit))
+        .take(Number(limit))
+        .getManyAndCount();
+
+      const totalPages = Math.ceil(total / Number(limit));
+      const nextPage = Number(page) < totalPages ? Number(page) + 1 : false;
+      const prevPage = Number(page) > 1 ? Number(page) - 1 : false;
+
+      if (!recipes.length) {
+        return {
+          data: [],
+          pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages,
+            nextPage,
+            prevPage,
+          },
+        };
+      }
+
+      // ----- NEW: load detail fields for returned recipes -----
+      const recipeIds = recipes.map((r) => r.id);
+      const detailRows = await this.recipeDetailRepository
+        .createQueryBuilder('detail')
+        .where('detail.recipe_id IN (:...ids)', { ids: recipeIds })
+        .andWhere('detail.is_active = :isActive', { isActive: false })
+        .select([
+          'detail.recipe_id as recipe_id',
+          'detail.recipe_video as recipe_video',
+          'detail.time_preparation as time_preparation',
+          'detail.time_cooking as time_cooking',
+          'detail.recipe_type as recipe_type',
+          'detail.ingredients as ingredients',
+          'detail.steps as steps',
+          'detail.nutrition_info as nutrition_info',
+          'detail.notes as notes',
+          'detail.nutrition_facts as nutrition_facts',
+        ])
+        .getRawMany();
+
+      const detailMap: Record<number, any> = {};
+      detailRows.forEach((d) => {
+        detailMap[Number(d.recipe_id)] = {
+          recipe_video: d.recipe_video,
+          time_preparation: d.time_preparation,
+          time_cooking: d.time_cooking,
+          recipe_type: d.recipe_type,
+          ingredients: d.ingredients,
+          steps: d.steps,
+          nutrition_info: d.nutrition_info,
+          notes: d.notes,
+          nutrition_facts: d.nutrition_facts,
+        };
+      });
+
+      // Attach detail to each recipe
+      const recipesWithDetail = recipes.map((r) => ({
+        ...r,
+        detail: detailMap[r.id] || null,
+      }));
+      // ----- END NEW -----
+
+      return {
+        data: recipesWithDetail,
         pagination: {
           total,
           page: Number(page),
@@ -257,6 +416,13 @@ export class RecipeService {
       });
       await this.recipeRepository.save(newRecipe);
 
+      if (!newRecipe) {
+        throw new HttpException(
+          'Failed to create recipe',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
       const recipeDetail = this.recipeDetailRepository.create({
         recipe: newRecipe,
         ingredients,
@@ -271,14 +437,18 @@ export class RecipeService {
       });
       await this.recipeDetailRepository.save(recipeDetail);
 
-      category.recipes = [...(category.recipes || []), newRecipe];
-      await this.categoryRepository.save(category);
+      await this.categoryRepository
+        .createQueryBuilder()
+        .relation(Category, 'recipes')
+        .of(category)
+        .add(newRecipe);
 
       return { message: 'Recipe created successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
+      this.logger.error(`Internal server error: ${error.message}`, error.stack);
       throw new HttpException(
         `Internal server error: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -389,6 +559,280 @@ export class RecipeService {
         .remove(recipe.category);
 
       return { message: 'Recipe deleted successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Add recipe to user's favorites
+   */
+
+  async addToFavorites(
+    userId: number,
+    recipeId: number,
+  ): Promise<{ message: string }> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId, is_active: false },
+        relations: ['wishlists'],
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      const recipe = await this.recipeRepository.findOne({
+        where: { id: recipeId, is_active: false },
+        relations: ['wishlists'],
+      });
+
+      if (!recipe) {
+        throw new HttpException('Recipe not found', HttpStatus.NOT_FOUND);
+      }
+
+      const favoriteRecipe = await this.wishlistRepository
+        .createQueryBuilder('wishlist')
+        .leftJoinAndSelect('wishlist.users', 'users')
+        .leftJoinAndSelect('wishlist.recipes', 'recipes')
+        .where('users.id = :userId and recipes.id = :recipeId', {
+          userId,
+          recipeId,
+        })
+        .getOne();
+
+      if (favoriteRecipe) {
+        throw new HttpException(
+          'Recipe already in favorites',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const newWishlistEntry = this.wishlistRepository.create({
+        users: user,
+        recipes: recipe,
+      });
+      await this.wishlistRepository.save(newWishlistEntry);
+
+      await this.userRepository
+        .createQueryBuilder()
+        .relation(User, 'wishlists')
+        .of(user)
+        .add(newWishlistEntry);
+
+      await this.recipeRepository
+        .createQueryBuilder()
+        .relation(Recipe, 'wishlists')
+        .of(recipe)
+        .add(newWishlistEntry);
+
+      return { message: 'Recipe added to favorites successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  /**
+   * Remove recipe from user's favorites
+   */
+  async removeFromFavorites(
+    userId: number,
+    recipeId: number,
+  ): Promise<{ message: string }> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId, is_active: false },
+        relations: ['wishlists'],
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      const recipe = await this.recipeRepository.findOne({
+        where: { id: recipeId, is_active: false },
+        relations: ['wishlists'],
+      });
+
+      if (!recipe) {
+        throw new HttpException('Recipe not found', HttpStatus.NOT_FOUND);
+      }
+
+      const favoriteRecipe = await this.wishlistRepository
+        .createQueryBuilder('wishlist')
+        .leftJoinAndSelect('wishlist.users', 'users')
+        .leftJoinAndSelect('wishlist.recipes', 'recipes')
+        .where('users.id = :userId and recipes.id = :recipeId', {
+          userId,
+          recipeId,
+        })
+        .getOne();
+
+      if (!favoriteRecipe) {
+        throw new HttpException(
+          'Recipe not in favorites',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.wishlistRepository.remove(favoriteRecipe);
+
+      await this.userRepository
+        .createQueryBuilder()
+        .relation(User, 'wishlists')
+        .of(user)
+        .remove(favoriteRecipe);
+
+      await this.recipeRepository
+        .createQueryBuilder()
+        .relation(Recipe, 'wishlists')
+        .of(recipe)
+        .remove(favoriteRecipe);
+
+      return { message: 'Recipe removed from favorites successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get user's favorite recipes (supports pagination, search, sort)
+   */
+  async getUserFavorites(
+    userId: number,
+    query: QueryRecipeDto,
+  ): Promise<{ data: any[]; pagination: any }> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId, is_active: false },
+      });
+      if (!user) {
+        throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+      }
+
+      // normalize & validate paging params
+      let page = Number(query.page) || 1;
+      let limit = Number(query.limit) || 10;
+      if (!Number.isFinite(page) || page < 1) page = 1;
+      if (!Number.isFinite(limit) || limit < 1) limit = 10;
+      limit = Math.min(limit, 1000);
+
+      const offset = (page - 1) * limit;
+      const { search, sortBy, order } = query;
+
+      // build query: inner join to ensure user is in recipe.users
+      const qb = this.wishlistRepository
+        .createQueryBuilder('wishlist')
+        .leftJoinAndSelect('wishlist.recipes', 'recipe')
+        .leftJoinAndSelect('recipe.category', 'category')
+        .leftJoinAndSelect('recipe.admin', 'admin')
+        .where('recipe.is_active = :isActive', { isActive: false })
+        .innerJoin('wishlist.users', 'favUser', 'favUser.id = :userId', {
+          userId,
+        });
+
+      if (search) {
+        qb.andWhere('LOWER(recipe.title) LIKE :title', {
+          title: `%${String(search).toLowerCase()}%`,
+        });
+      }
+
+      // safe sort fields
+      const allowedSortFields = new Set([
+        'id',
+        'title',
+        'slug',
+        'image_url',
+        'created_at',
+        'recipe_count', // won't be present but kept for safety
+      ]);
+      const sortField =
+        sortBy && allowedSortFields.has(sortBy)
+          ? `recipe.${sortBy}`
+          : 'recipe.id';
+      const sortOrder = order && order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      qb.orderBy(sortField, sortOrder as 'ASC' | 'DESC');
+
+      qb.select([
+        'wishlist.id',
+        'recipe.id',
+        'recipe.title',
+        'recipe.slug',
+        'recipe.image_url',
+        'category.id',
+        'category.name',
+        'admin.id',
+        'admin.username',
+        'admin.role',
+      ]);
+
+      const [recipes, total] = await qb
+        .skip(offset)
+        .take(limit)
+        .getManyAndCount();
+
+      const totalPages = Math.ceil(total / limit);
+      const nextPage = page < totalPages ? page + 1 : false;
+      const prevPage = page > 1 ? page - 1 : false;
+
+      return {
+        data: recipes,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+          nextPage,
+          prevPage,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Check if a recipe is in user's favorites
+   */
+  async isRecipeInFavorites(
+    userId: number,
+    recipeId: number,
+  ): Promise<boolean> {
+    try {
+      const favoriteRecipe = await this.wishlistRepository
+        .createQueryBuilder('wishlist')
+        .leftJoinAndSelect('wishlist.users', 'users')
+        .leftJoinAndSelect('wishlist.recipes', 'recipes')
+        .where('users.id = :userId and recipes.id = :recipeId', {
+          userId,
+          recipeId,
+        })
+        .getOne();
+
+      return !!favoriteRecipe;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

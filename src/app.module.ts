@@ -14,6 +14,8 @@ import { CategoryModule } from './modules/categories/category.module';
 import { RecipeModule } from './modules/recipes/recipe.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { BlogModule } from './modules/blogs/blog.module';
+import { WhistlistModule } from './whistlist/whistlist.module';
+import { CommentModule } from './comments/comment.module';
 
 @Module({
   imports: [
@@ -31,7 +33,9 @@ import { BlogModule } from './modules/blogs/blog.module';
     CategoryModule,
     RecipeModule,
     AdminModule,
-    BlogModule
+    BlogModule,
+    WhistlistModule,
+    CommentModule
   ],
   controllers: [AppController],
   providers: [AppService],

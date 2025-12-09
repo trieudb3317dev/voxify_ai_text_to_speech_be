@@ -13,7 +13,7 @@ async function bootstrap() {
 
   // Cấu hình Swagger
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('API Documentation')
+    .setTitle('Recipe Instructions API Documentation')
     .setDescription('NestJS API Swagger')
     .setVersion('1.0')
     .addBearerAuth()

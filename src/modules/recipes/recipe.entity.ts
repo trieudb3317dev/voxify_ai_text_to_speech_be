@@ -3,11 +3,15 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Category } from '../categories/category.entity';
 import { Admin } from '../admin/admin.entity';
+import { RecipeDetail } from './recipe-detail.entity';
+import { User } from '../user/user.entity';
+import { Wishlist } from '../../whistlist/whistlist.entity';
 
 @Entity('recipes')
 export class Recipe {
@@ -15,7 +19,7 @@ export class Recipe {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Admin, (admin) => admin.id, {
+  @ManyToOne(() => Admin, (admin) => admin.id, {
     onDelete: 'CASCADE',
     nullable: true,
   })
@@ -39,6 +43,12 @@ export class Recipe {
     nullable: true,
   })
   category: Category;
+
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.recipes, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  wishlists: Wishlist[] | null;
 
   @Column({ default: false })
   is_active: boolean;
