@@ -82,7 +82,7 @@ export class RecipeController {
   @ApiOperation({ summary: 'Get recipe details by recipe ID' })
   @ApiResponse({
     status: 200,
-    description: 'Recipe details retrieved successfully.',
+    description: 'Recipe details retrieved successfully.', 
   })
   @ApiResponse({ status: 404, description: 'Recipe not found.' })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
