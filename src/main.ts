@@ -11,19 +11,34 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
+  // normalize backend URLs from env (comma separated)
+  const backendEnv = configService.get<string>('BACKEND_URL') || '';
+  const backendUrls = backendEnv
+    .split(',')
+    .map((u) => String(u).trim())
+    .filter((u) => u.length > 0)
+    .map((u) => u.replace(/\/+$/g, '')); // remove trailing slash
+
   // Cấu hình Swagger
-  const swaggerConfig = new DocumentBuilder()
+  const swaggerBuilder = new DocumentBuilder()
     .setTitle('Recipe Instructions API Documentation')
     .setDescription('NestJS API Swagger')
     .setVersion('1.0')
     .addBearerAuth()
-    .build();
+    .addServer(`http://localhost:${configService.get<number>('APP_PORT', 8080)}/api/v1`, 'Local server');
 
+  // add one server entry per BACKEND_URL
+  backendUrls.forEach((url) =>
+    swaggerBuilder.addServer(`${url}/api/v1`, `Backend: ${url}`),
+  );
+
+  const swaggerConfig = swaggerBuilder.build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api-docs', app, document); // Đường dẫn: /api-docs
 
   // Lấy danh sách các domain từ biến môi trường, nếu không thì mặc định là localhost
   const frontendUrls = configService.get<string>('FRONTEND_URLS').split(','); // Tách các URL nếu có nhiều hơn 1 domain
+  const backendUrlsEnv = backendUrls; // reuse normalized array
 
   const port = configService.get<number>('APP_PORT', 8080);
 
@@ -65,8 +80,9 @@ async function bootstrap() {
 
   app.use(cookieParser());
   await app.listen(port);
-  console.log(`\uD83D\uDE80 Ứng dụng đang chạy tại: http://localhost:${port}`);
-  console.log(`📚 Swagger docs: http://localhost:${port}/api-docs`);
+  console.log(`\uD83D\uDE80 Ứng dụng đang chạy tại: ${backendUrlsEnv.length ? backendUrlsEnv.join(', ') : `http://localhost:${port}`}`);
+  console.log(`📚 Swagger docs: ${backendUrlsEnv.length ? backendUrlsEnv.join(', ') : `http://localhost:${port}`}/api-docs`);
+  console.log(`🔗 Backend URLs: ${backendUrlsEnv.length ? backendUrlsEnv.join(', ') : '[none]'}`);
 }
 
 bootstrap();
