@@ -257,12 +257,14 @@ export class AuthService {
       response.clearCookie('access_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
+        domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
       });
       response.clearCookie('refresh_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
+        domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
       });
       return { message: 'Logout successful' };
     } catch (error) {
@@ -310,8 +312,8 @@ export class AuthService {
     response.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+      sameSite: 'none',
+      domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;
@@ -329,8 +331,8 @@ export class AuthService {
     response.cookie('refresh_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+      sameSite: 'none',
+      domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;
