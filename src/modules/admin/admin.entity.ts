@@ -11,7 +11,7 @@ enum GenderType {
   OTHER = 'other',
 }
 
-enum AdminRole {
+export enum AdminRole {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   MODERATOR = 'moderator',

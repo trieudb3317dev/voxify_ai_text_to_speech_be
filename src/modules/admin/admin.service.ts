@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Admin } from './admin.entity';
+import { Admin, AdminRole } from './admin.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import {
@@ -40,6 +40,7 @@ export class AdminService {
       const newAdmin = this.adminRepository.create({
         ...adminData,
         password: hashedPassword,
+        role: AdminRole[adminData.role?.toUpperCase()] || AdminRole.ADMIN,
       });
       await this.adminRepository.save(newAdmin);
       return { message: 'Admin created successfully' };
@@ -102,13 +103,19 @@ export class AdminService {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'none',
-        domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
+        domain:
+          process.env.NODE_ENV === 'production'
+            ? process.env.PRODUCTION_DOMAIN
+            : 'localhost',
       });
       response.clearCookie('refresh_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'none',
-        domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
+        domain:
+          process.env.NODE_ENV === 'production'
+            ? process.env.PRODUCTION_DOMAIN
+            : 'localhost',
       });
       return { message: 'Logout successful' };
     } catch (error) {
@@ -183,34 +190,35 @@ export class AdminService {
   }
 
   async updateProfile(
-      userId: number,
-      updatedData: UpdateAdminDto,
-    ): Promise<{ message: string } | Admin> {
-      try {
-        const user = await this.adminRepository.findOne({ where: { id: userId } });
-        if (!user) {
-          throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-        }
-        await this.adminRepository.update(userId, {
-          ...updatedData,
-          full_name: updatedData.full_name ?? user.full_name,
-          avatar: updatedData.avatar ?? user.avatar,
-          gender:
-            GenderType[updatedData.gender?.toUpperCase()] ?? user.gender,
-          day_of_birth: updatedData.day_of_birth ?? user.day_of_birth,
-          phone_number: updatedData.phone_number ?? user.phone_number,
-        });
-        return { message: 'User profile updated successfully' };
-      } catch (error) {
-        if (error instanceof HttpException) {
-          throw error;
-        }
-        throw new HttpException(
-          `Internal server error: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+    userId: number,
+    updatedData: UpdateAdminDto,
+  ): Promise<{ message: string } | Admin> {
+    try {
+      const user = await this.adminRepository.findOne({
+        where: { id: userId },
+      });
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
+      await this.adminRepository.update(userId, {
+        ...updatedData,
+        full_name: updatedData.full_name ?? user.full_name,
+        avatar: updatedData.avatar ?? user.avatar,
+        gender: GenderType[updatedData.gender?.toUpperCase()] ?? user.gender,
+        day_of_birth: updatedData.day_of_birth ?? user.day_of_birth,
+        phone_number: updatedData.phone_number ?? user.phone_number,
+      });
+      return { message: 'User profile updated successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
+  }
 
   private generateAccessToken(user: PayloadDto, response: Response): string {
     const payload = { username: user.username, role: user.role, sub: user.id };
@@ -222,10 +230,13 @@ export class AdminService {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
-      domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PRODUCTION_DOMAIN
+          : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    return token; 
+    return token;
   }
 
   private async generateRefreshToken(
@@ -241,7 +252,10 @@ export class AdminService {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
-      domain: process.env.NODE_ENV === 'production' ? process.env.PRODUCTION_DOMAIN : 'localhost',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PRODUCTION_DOMAIN
+          : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;

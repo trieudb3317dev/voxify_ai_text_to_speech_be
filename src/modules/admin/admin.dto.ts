@@ -18,6 +18,10 @@ export class CreateAdminDto {
   @IsString({ message: 'Password must be a string' })
   @Min(6, { message: 'Password must be at least 6 characters long' })
   password: string;
+
+  @IsOptional()
+  @IsString({message: 'Role must be a string'})
+  role?: string;
 }
 
 export class UpdateAdminDto {
