@@ -16,7 +16,7 @@ export class Otp {
     @Column({ type: 'timestamptz' })
     expires_at: Date;
 
-    @Column({ default: false })
+    @Column({ default: false, nullable: true })
     is_used: boolean;
 
     @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
