@@ -4,8 +4,10 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -16,6 +18,8 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAdminAuthGuard } from './guards/jwt-admin-auth.guard';
 import { RoleGuard } from './guards/role.guard';
+import { Roles } from './decorator/role.decorator';
+import { Role } from '../type/role.enum';
 
 @Controller('admin')
 export class AdminController {
@@ -31,6 +35,19 @@ export class AdminController {
   async register(@Body() createAdminDto: CreateAdminDto) {
     // Implementation for creating an admin
     await this.adminService.create(createAdminDto);
+  }
+
+  @ApiOperation({ summary: 'Verify admin account' })
+  @ApiResponse({ status: 200, description: 'Admin account verified successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-account')
+  async verifyAccount(
+    @Body('username') username: string,
+    @Body('code') code: string,
+  ) {
+    return this.adminService.verifyAdminAccount(username, code);
   }
 
   @ApiOperation({ summary: 'Admin login' })
@@ -88,5 +105,65 @@ export class AdminController {
   async logout(@Res({ passthrough: true }) response: Response) {
     // Implementation for admin logout
     return this.adminService.logout(response);
+  }
+
+  // Only super admins can access this route
+  @ApiOperation({ summary: 'Get all admins' })
+  @ApiResponse({ status: 200, description: 'Admins retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('admins')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async getAllAdmins(@Query() query: any) {
+    // Implementation for retrieving all admins
+    return this.adminService.getAllAdminAccounts(query);
+  }
+
+  @ApiOperation({ summary: 'Get admin by ID' })
+  @ApiResponse({ status: 200, description: 'Admin retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('users')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async getAllUsers(@Query() query: any) {
+    return this.adminService.getAllUserAccounts(query);
+  }
+
+  // Block or unblock an admin - only super admins can perform this action
+  @ApiOperation({ summary: 'Block or unblock an admin' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin status updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Put('status/:adminId')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async blockUnblockAdmin(@Param('adminId') adminId: string) {
+    // Implementation for blocking or unblocking an admin
+    const id = parseInt(adminId, 10);
+    return this.adminService.blockAccountAdmin(id);
+  }
+
+  @ApiOperation({ summary: 'Block or unblock a user' })
+  @ApiResponse({
+    status: 200,
+    description: 'User status updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  @HttpCode(HttpStatus.OK)
+  @Put('user/status/:userId')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async blockUnblockUser(@Param('userId') userId: string) {
+    const id = parseInt(userId, 10);
+    return this.adminService.blockAccountUser(id);
   }
 }

@@ -26,7 +26,7 @@ export class AuthService {
     try {
       const salt = 10;
       const existingUser = await this.userRepository.findOne({
-        where: { username: registerDto.username },
+        where: { username: registerDto.username, is_active: false },
       });
       if (existingUser) {
         throw new HttpException(
@@ -41,6 +41,23 @@ export class AuthService {
         password: hasPassword,
       });
       await this.userRepository.save(newUser);
+
+      const otp = await this.generateOtp();
+      const otpEntity: Otp = this.otpRepository.create({
+        user: newUser,
+        code: otp,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+      });
+      await this.otpRepository.save(otpEntity);
+
+      await this.mailService.sendAccountCreationEmail(
+        newUser.email,
+        newUser.username,
+        registerDto.password,
+        15,
+        otp,
+      );
+
       return { message: 'Registration successful' };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -52,6 +69,49 @@ export class AuthService {
       this.logger.error(
         `Registration failed for user ${registerDto.username}: ${error.message}`,
       );
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async verifyUser(
+    username: string,
+    otp: string,
+  ): Promise<{ message: string }> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { username: username },
+      });
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      const otpRecord = await this.otpRepository.findOne({
+        where: { user: { id: user.id }, code: otp, is_used: false },
+      });
+      if (!otpRecord) {
+        throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
+      }
+      if (otpRecord.expires_at < new Date()) {
+        await this.userRepository.update(user.id, { is_active: true });
+        throw new HttpException(
+          'OTP has expired. Your account has been activated.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      user.is_verified = true;
+      await this.userRepository.save(user);
+      otpRecord.is_used = true;
+      await this.otpRepository.save(otpRecord);
+      return { message: 'User verified successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.logger.error(
+          `User verification failed for user ${username}: ${error.message}`,
+        );
+        throw error;
+      }
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -257,12 +317,20 @@ export class AuthService {
       response.clearCookie('access_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
+        domain:
+          process.env.NODE_ENV === 'production'
+            ? process.env.PRODUCTION_DOMAIN
+            : 'localhost',
       });
       response.clearCookie('refresh_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
+        domain:
+          process.env.NODE_ENV === 'production'
+            ? process.env.PRODUCTION_DOMAIN
+            : 'localhost',
       });
       return { message: 'Logout successful' };
     } catch (error) {
@@ -310,8 +378,11 @@ export class AuthService {
     response.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+      sameSite: 'none',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PRODUCTION_DOMAIN
+          : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;
@@ -329,8 +400,11 @@ export class AuthService {
     response.cookie('refresh_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+      sameSite: 'none',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PRODUCTION_DOMAIN
+          : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;
