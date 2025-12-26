@@ -27,6 +27,17 @@ export class AuthController {
     return this.authService.register(createUserDto);
   }
 
+  // Verify that the user has clicked the link in the verification email
+  @Post('verify-account')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify user account' })
+  @ApiResponse({ status: 200, description: 'User account verified successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  async verifyAccount(@Body('username') username: string, @Body('otp') otp: string) {
+    return this.authService.verifyUser(username, otp);
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })

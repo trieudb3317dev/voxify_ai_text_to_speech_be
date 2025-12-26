@@ -7,10 +7,13 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SharedModule } from 'src/shared/shared.module';
 import { JwtAdminStrategy } from './strategies/jwt-admin.strategy';
+import { User } from '../user/user.entity';
+import { MailService } from 'src/shared/mail/mail.service';
+import { Otp } from '../otp/otp.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Admin]),
+    TypeOrmModule.forFeature([Admin, User, Otp]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

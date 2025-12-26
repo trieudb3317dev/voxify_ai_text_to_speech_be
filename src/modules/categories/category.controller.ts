@@ -38,7 +38,7 @@ export class CategoryController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async createCategory(@Body() cateDto: CategoryDto) {
     return await this.categoryService.create(cateDto);
   }
@@ -84,7 +84,7 @@ export class CategoryController {
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async update(@Param('id') id: number, @Body() cateDto: CategoryDto) {
     return await this.categoryService.update(id, cateDto);
   }
@@ -100,7 +100,7 @@ export class CategoryController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async delete(@Param('id') id: number) {
     return await this.categoryService.delete(id);
   }

@@ -109,7 +109,7 @@ export class RecipeController {
   @HttpCode(HttpStatus.CREATED)
   @Post()
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async create(@Body() recipeDto: RecipeDto<RecipeDetailDto>, @Req() req) {
     // Implementation for creating a recipe
     return await this.recipeService.create(recipeDto, req.user);
@@ -126,7 +126,7 @@ export class RecipeController {
   @HttpCode(HttpStatus.OK)
   @Put(':id')
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async update(
     @Param('id') id: number,
     @Body() recipeData: RecipeUpdateDto,
@@ -148,7 +148,7 @@ export class RecipeController {
   @HttpCode(HttpStatus.OK)
   @Put(':id/details')
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async updateDetails(
     @Param('id') id: number,
     @Body() recipeDetailData: RecipeDetailDto,
@@ -167,7 +167,7 @@ export class RecipeController {
   @HttpCode(HttpStatus.OK)
   @Delete(':id')
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async delete(@Param('id') id: number) {
     return await this.recipeService.delete(id);
   }

@@ -65,7 +65,7 @@ export class BlogController {
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   @HttpCode(HttpStatus.CREATED)
   @Post()
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   async createBlog(@Req() req: any, @Body() blogData: CreateBlogDto) {
     // Implement create blog logic here
@@ -81,7 +81,7 @@ export class BlogController {
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   @HttpCode(HttpStatus.OK)
   @Put(':id')
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   async updateBlog(@Param('id') id: number, @Body() blogData: UpdateBlogDto) {
     // Implement update blog logic here
@@ -97,7 +97,7 @@ export class BlogController {
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   @HttpCode(HttpStatus.OK)
   @Delete(':id')
-  @Roles(Role.SUPPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   async deleteBlog(@Param('id') id: number) {
     // Implement delete blog logic here
