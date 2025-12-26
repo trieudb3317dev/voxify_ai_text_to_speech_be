@@ -42,20 +42,19 @@ export class AuthService {
       });
       await this.userRepository.save(newUser);
 
-      const otp = await this.generateOtp();
-      const otpEntity: Otp = this.otpRepository.create({
-        user: newUser,
-        code: otp,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-      });
-      await this.otpRepository.save(otpEntity);
+      // const otp = await this.generateOtp();
+      // const otpEntity: Otp = this.otpRepository.create({
+      //   user: newUser,
+      //   code: otp,
+      //   expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+      // });
+      // await this.otpRepository.save(otpEntity);
 
       await this.mailService.sendAccountCreationEmail(
         newUser.email,
         newUser.username,
         registerDto.password,
-        15,
-        otp,
+        15
       );
 
       return { message: 'Registration successful' };

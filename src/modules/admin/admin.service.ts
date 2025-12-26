@@ -52,20 +52,19 @@ export class AdminService {
       });
       await this.adminRepository.save(newAdmin);
 
-      const otp = await this.generateOtp();
-      const otpEntity: Otp = this.otpRepository.create({
-        user: newAdmin,
-        code: otp,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-      });
-      await this.otpRepository.save(otpEntity);
+      // const otp = await this.generateOtp();
+      // const otpEntity: Otp = this.otpRepository.create({
+      //   user: newAdmin,
+      //   code: otp,
+      //   expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+      // });
+      // await this.otpRepository.save(otpEntity);
 
       await this.mailService.sendAccountCreationEmail(
         newAdmin.email,
         newAdmin.username,
         adminData.password,
-        15,
-        otp,
+        15
       );
       return { message: 'Admin created successfully' };
     } catch (error) {
