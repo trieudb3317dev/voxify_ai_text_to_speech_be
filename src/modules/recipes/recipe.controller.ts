@@ -55,7 +55,7 @@ export class RecipeController {
   @ApiResponse({ status: 404, description: 'Admin not found.' })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   @HttpCode(HttpStatus.OK)
-  @Get('created-by')
+  @Get('by-created/me')
   @UseGuards(JwtAdminAuthGuard)
   async findAllByCreated(@Query() query: QueryRecipeDto, @Req() req) {
     return await this.recipeService.findAllByCreated(query, req.user.id);
