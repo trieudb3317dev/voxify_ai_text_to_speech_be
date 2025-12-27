@@ -294,10 +294,9 @@ export class AdminService {
       await this.adminRepository.update(adminId, { is_active: true });
 
       // Add logic to send notification email to the admin about account status change
-      await this.mailService.sendAccountStatusChangeEmail(
+      await this.mailService.sendAccountBlockedEmail(
         admin.email,
-        admin.username,
-        false,
+        admin.username
       );
       return { message: 'Admin account blocked successfully' };
     } catch (error) {
@@ -322,10 +321,9 @@ export class AdminService {
       await this.userRepository.update(userId, { is_active: true });
 
       // Add logic to send notification email to the user about account status change
-      await this.mailService.sendAccountStatusChangeEmail(
+      await this.mailService.sendAccountBlockedEmail(
         user.email,
-        user.username,
-        false,
+        user.username
       );
       return { message: 'User account blocked successfully' };
     } catch (error) {

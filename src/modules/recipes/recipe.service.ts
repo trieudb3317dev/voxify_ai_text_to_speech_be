@@ -148,11 +148,131 @@ export class RecipeService {
     }
   }
 
+  async findAllByCreated(
+    query: QueryRecipeDto,
+    userId: number,
+  ): Promise<RecipeListResponse<any>> {
+    try {
+      const { page = 1, limit = 10, search, sortBy, order } = query;
+      const createdBy = await this.adminRepository.findOne({
+        where: { id: userId },
+      });
+      if (!createdBy) {
+        throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
+      }
+      const qb = this.recipeRepository
+        .createQueryBuilder('recipe')
+        .leftJoin('recipe.category', 'category')
+        .leftJoin('recipe.admin', 'admin')
+        .where('recipe.is_active = :isActive', { isActive: false })
+        .andWhere('recipe.admin_id = :adminId', { adminId: createdBy.id })
+        .select([
+          'recipe.id',
+          'recipe.title',
+          'recipe.slug',
+          'recipe.image_url',
+          'category.id',
+          'category.name',
+          'admin.id',
+          'admin.username',
+          'admin.role',
+        ]);
+
+      // Apply sorting
+      if (sortBy && order) {
+        qb.orderBy(`recipe.${sortBy}`, order);
+      }
+
+      if (search) {
+        qb.andWhere('LOWER(recipe.title) LIKE :title', {
+          title: `%${String(search).toLowerCase()}%`,
+        });
+      }
+
+      const [recipes, total] = await qb
+        .skip((Number(page) - 1) * Number(limit))
+        .take(Number(limit))
+        .getManyAndCount();
+
+      const totalPages = Math.ceil(total / Number(limit));
+      const nextPage = Number(page) < totalPages ? Number(page) + 1 : false;
+      const prevPage = Number(page) > 1 ? Number(page) - 1 : false;
+
+      if (!recipes.length) {
+        return {
+          data: [],
+          pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages,
+            nextPage,
+            prevPage,
+          },
+        };
+      }
+
+      // ----- NEW: load detail fields for returned recipes -----
+      const recipeIds = recipes.map((r) => r.id);
+      const detailRows = await this.recipeDetailRepository
+        .createQueryBuilder('detail')
+        .where('detail.recipe_id IN (:...ids)', { ids: recipeIds })
+        .andWhere('detail.is_active = :isActive', { isActive: false })
+        .select([
+          'detail.recipe_id as recipe_id',
+          'detail.recipe_video as recipe_video',
+          'detail.time_preparation as time_preparation',
+          'detail.time_cooking as time_cooking',
+          'detail.recipe_type as recipe_type',
+        ])
+        .getRawMany();
+
+      const detailMap: Record<number, any> = {};
+      detailRows.forEach((d) => {
+        detailMap[Number(d.recipe_id)] = {
+          recipe_video: d.recipe_video,
+          time_preparation: d.time_preparation,
+          time_cooking: d.time_cooking,
+          recipe_type: d.recipe_type,
+        };
+      });
+
+      // Attach detail to each recipe
+      const recipesWithDetail = recipes.map((r) => ({
+        ...r,
+        detail: detailMap[r.id] || null,
+      }));
+      // ----- END NEW -----
+
+      return {
+        data: recipesWithDetail,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages,
+          nextPage,
+          prevPage,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Internal server error: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   /**
    * Get all recipes full details
    */
 
-  async findAllFullDetail(query: QueryRecipeDto): Promise<RecipeListResponse<any>> {
+  async findAllFullDetail(
+    query: QueryRecipeDto,
+  ): Promise<RecipeListResponse<any>> {
     try {
       const { page = 1, limit = 10, search, sortBy, order } = query;
       const qb = this.recipeRepository

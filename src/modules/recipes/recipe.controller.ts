@@ -45,6 +45,22 @@ export class RecipeController {
     return await this.recipeService.findAll(query);
   }
 
+  @ApiOperation({
+    summary: 'Get all recipes created by the authenticated admin',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of recipes created by the admin retrieved successfully.',
+  })
+  @ApiResponse({ status: 404, description: 'Admin not found.' })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @HttpCode(HttpStatus.OK)
+  @Get('created-by')
+  @UseGuards(JwtAdminAuthGuard)
+  async findAllByCreated(@Query() query: QueryRecipeDto, @Req() req) {
+    return await this.recipeService.findAllByCreated(query, req.user.id);
+  }
+
   /**
    * Get all recipes full details
    */
@@ -82,7 +98,7 @@ export class RecipeController {
   @ApiOperation({ summary: 'Get recipe details by recipe ID' })
   @ApiResponse({
     status: 200,
-    description: 'Recipe details retrieved successfully.', 
+    description: 'Recipe details retrieved successfully.',
   })
   @ApiResponse({ status: 404, description: 'Recipe not found.' })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
