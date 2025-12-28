@@ -496,14 +496,13 @@ export class BlogService {
           let adminRef = null;
           const adminUsername = (obj['admin_username'] || '').trim();
           if (adminUsername) {
-            // find admin via repository (we didn't inject admin repo in this service).
-            // Try to use query to find admin id via QueryBuilder on admin table using raw SQL to avoid adding injection.
-            const adminRow = await this.blogRepository.manager.query(
-              'SELECT id FROM admins WHERE username = $1 LIMIT 1',
-              [adminUsername],
-            );
-            if (adminRow && adminRow[0]) {
-              adminRef = { id: adminRow[0].id };
+            // Use the injected admin repository instead of raw SQL (raw SQL used a table name with '-'
+            // which causes syntax errors). This is safer and sufficient to find the admin.
+            const adminEntity = await this.adminRepository.findOne({
+              where: { username: adminUsername },
+            });
+            if (adminEntity) {
+              adminRef = { id: adminEntity.id };
             }
           }
 
@@ -514,7 +513,6 @@ export class BlogService {
             content: parsedContent,
             notes,
             admin: adminRef as any,
-            is_active: false,
           };
 
           const saved = await this.blogRepository.save(

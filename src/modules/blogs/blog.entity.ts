@@ -2,7 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Admin } from '../admin/admin.entity';
@@ -13,7 +13,7 @@ export class Blog {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Admin, (admin) => admin.id, {
+  @ManyToOne(() => Admin, (admin) => admin.id, {
     onDelete: 'CASCADE',
     nullable: true,
   })
