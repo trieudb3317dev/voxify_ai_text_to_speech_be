@@ -144,7 +144,7 @@ export class BlogController {
 
     // If multer used memory storage, write buffer to tmp and pass that path
     if (!filePathToPass && (file as any).buffer) {
-      const tmpDir = path.join(process.cwd(), 'tmp');
+      const tmpDir = path.join(process.cwd(), process.env.TMP_DIR || 'tmp');
       fs.mkdirSync(tmpDir, { recursive: true });
       const filename = `import_${Date.now()}_${(file.originalname || 'upload').replace(/\s+/g, '_')}`;
       const fp = path.join(tmpDir, filename);
