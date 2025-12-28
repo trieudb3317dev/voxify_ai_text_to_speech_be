@@ -401,7 +401,7 @@ export class BlogService {
           );
         }
       } else {
-        const tmpDir = path.join(process.cwd(), 'tmp');
+        const tmpDir = path.join(process.cwd(), process.env.TMP_DIR || 'tmp');
         if (!fs.existsSync(tmpDir)) {
           throw new HttpException(
             'No tmp directory found',

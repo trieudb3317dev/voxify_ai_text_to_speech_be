@@ -12,16 +12,19 @@ import {
   Req,
   UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { CreateBlogDto, QueryBlogDto, UpdateBlogDto } from './blog.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '../admin/guards/jwt-admin-auth.guard';
 import { Roles } from '../admin/decorator/role.decorator';
 import { Role } from '../type/role.enum';
 import { RoleGuard } from '../admin/guards/role.guard';
 import * as path from 'path';
 import * as fs from 'fs';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Controller('blogs')
 export class BlogController {
@@ -131,10 +134,23 @@ export class BlogController {
     description: 'Blogs imported successfully.',
   })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @Post('import/csv')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
   async importBlogsFromCSV(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       return await this.blogService.importBlogsFromCSV();

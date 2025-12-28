@@ -5,26 +5,36 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Put,
   Query,
   UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CategoryDto, QueryCategoryDto } from './category.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '../admin/guards/jwt-admin-auth.guard';
 import { RoleGuard } from '../admin/guards/role.guard';
 import { Roles } from '../admin/decorator/role.decorator';
 import { Role } from '../type/role.enum';
 import * as path from 'path';
 import * as fs from 'fs';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Controller('categories')
 export class CategoryController {
   // Implement category controller methods here
+  private readonly logger = new Logger(CategoryController.name);
   constructor(private readonly categoryService: CategoryService) {}
 
   @ApiOperation({ summary: 'Create a new category' })
@@ -121,6 +131,19 @@ export class CategoryController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   async importCategoriesFromCSV(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       return await this.categoryService.importCategoriesFromCSV();

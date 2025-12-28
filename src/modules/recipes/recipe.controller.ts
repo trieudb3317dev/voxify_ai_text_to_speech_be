@@ -22,7 +22,7 @@ import {
   RecipeDto,
   RecipeUpdateDto,
 } from './recipe.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '../admin/guards/jwt-admin-auth.guard';
 import { RoleGuard } from '../admin/guards/role.guard';
 import { Roles } from '../admin/decorator/role.decorator';
@@ -30,6 +30,7 @@ import { Role } from '../type/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as multer from 'multer';
 
 @Controller('recipes')
 export class RecipeController {
@@ -277,11 +278,23 @@ export class RecipeController {
     description: 'Recipes data imported successfully.',
   })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('import/csv')
   @UseGuards(JwtAdminAuthGuard, RoleGuard)
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
-  @UseInterceptors(FileInterceptor('file')) // accept single file field named 'file'
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() })) // accept single file field named 'file'
   async importRecipesFromCSV(@UploadedFile() file?: Express.Multer.File) {
     // If no file provided, service will look for newest file in tmp/
     if (!file) {
