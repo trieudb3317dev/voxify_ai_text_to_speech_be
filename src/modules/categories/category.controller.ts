@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
@@ -18,6 +19,8 @@ import { JwtAdminAuthGuard } from '../admin/guards/jwt-admin-auth.guard';
 import { RoleGuard } from '../admin/guards/role.guard';
 import { Roles } from '../admin/decorator/role.decorator';
 import { Role } from '../type/role.enum';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Controller('categories')
 export class CategoryController {
@@ -103,5 +106,54 @@ export class CategoryController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
   async delete(@Param('id') id: number) {
     return await this.categoryService.delete(id);
+  }
+
+  /**
+   * Import categories from CSV file
+   */
+  @ApiOperation({ summary: 'Import categories from CSV file' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories imported successfully.',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @Post('import/csv')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async importCategoriesFromCSV(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      return await this.categoryService.importCategoriesFromCSV();
+    }
+    // If multer stores file on disk, file.path is available
+    let filePathToPass: string | undefined = (file as any).path;
+
+    // If multer used memory storage, write buffer to tmp and pass that path
+    if (!filePathToPass && (file as any).buffer) {
+      const tmpDir = path.join(process.cwd(), 'tmp');
+      fs.mkdirSync(tmpDir, { recursive: true });
+      const filename = `import_${Date.now()}_${(file.originalname || 'upload').replace(/\s+/g, '_')}`;
+      const fp = path.join(tmpDir, filename);
+      fs.writeFileSync(fp, (file as any).buffer);
+      filePathToPass = fp;
+    }
+    return await this.categoryService.importCategoriesFromCSV(filePathToPass);
+  }
+
+  /**
+   * Export categories to CSV file
+   */
+  @ApiOperation({ summary: 'Export categories to CSV file' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories exported successfully.',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @Get('export/csv')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async exportCategoriesToCSV() {
+    return await this.categoryService.exportCategoriesToCSV();
   }
 }

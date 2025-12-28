@@ -11,7 +11,10 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RecipeService } from './recipe.service';
 import {
   QueryRecipeDto,
@@ -25,6 +28,8 @@ import { RoleGuard } from '../admin/guards/role.guard';
 import { Roles } from '../admin/decorator/role.decorator';
 import { Role } from '../type/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('recipes')
 export class RecipeController {
@@ -261,5 +266,58 @@ export class RecipeController {
   async isFavorite(@Param('id') recipeId: number, @Req() req) {
     const userId = req.user.id;
     return await this.recipeService.isRecipeInFavorites(userId, recipeId);
+  }
+
+  /**
+   * Import recipes data from CSV
+   */
+  @ApiOperation({ summary: 'Import recipes data from CSV' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recipes data imported successfully.',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @HttpCode(HttpStatus.OK)
+  @Post('import/csv')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  @UseInterceptors(FileInterceptor('file')) // accept single file field named 'file'
+  async importRecipesFromCSV(@UploadedFile() file?: Express.Multer.File) {
+    // If no file provided, service will look for newest file in tmp/
+    if (!file) {
+      return await this.recipeService.importRecipesFromCSV();
+    }
+
+    // If multer stores file on disk, file.path is available
+    let filePathToPass: string | undefined = (file as any).path;
+
+    // If multer used memory storage, write buffer to tmp and pass that path
+    if (!filePathToPass && (file as any).buffer) {
+      const tmpDir = path.join(process.cwd(), 'tmp');
+      fs.mkdirSync(tmpDir, { recursive: true });
+      const filename = `import_${Date.now()}_${(file.originalname || 'upload').replace(/\s+/g, '_')}`;
+      const fp = path.join(tmpDir, filename);
+      fs.writeFileSync(fp, (file as any).buffer);
+      filePathToPass = fp;
+    }
+
+    return await this.recipeService.importRecipesFromCSV(filePathToPass);
+  }
+
+  /**
+   * Export recipes data as CSV
+   */
+  @ApiOperation({ summary: 'Export recipes data as CSV' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recipes data exported successfully.',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  @HttpCode(HttpStatus.OK)
+  @Get('export/csv')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MODERATOR, Role.EDITOR)
+  async exportRecipesAsCSV() {
+    return await this.recipeService.exportRecipesToCSV();
   }
 }
