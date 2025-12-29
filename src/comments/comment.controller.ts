@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { CommentService } from './comment.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CreateCommentDto } from './comment.dto';
+import { JwtAdminAuthGuard } from 'src/modules/admin/guards/jwt-admin-auth.guard';
 
 @Controller('comments')
 export class CommentController {
@@ -76,10 +78,10 @@ export class CommentController {
   @ApiResponse({ status: 404, description: 'Recipe not found' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   @Get('/recipe/:id')
-  @UseGuards(JwtAuthGuard)
-  async getCommentsByRecipe(@Param('id') recipeId: number, @Req() req: any) {
+  // @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAdminAuthGuard)
+  async getCommentsByRecipe(@Param('id') recipeId: number, @Query() query: any) {
     // Implement the logic to get comments for a recipe
-    const userId = req.user.id;
-    return this.commentService.getCommentsByRecipe(recipeId, userId);
+    return this.commentService.getCommentsByRecipe(recipeId, query);
   }
 }
