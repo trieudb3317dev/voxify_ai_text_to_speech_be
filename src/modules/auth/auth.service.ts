@@ -42,19 +42,20 @@ export class AuthService {
       });
       await this.userRepository.save(newUser);
 
-      // const otp = await this.generateOtp();
-      // const otpEntity: Otp = this.otpRepository.create({
-      //   user: newUser,
-      //   code: otp,
-      //   expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-      // });
-      // await this.otpRepository.save(otpEntity);
+      const otp = await this.generateOtp();
+      const otpEntity: Otp = this.otpRepository.create({
+        user: newUser,
+        code: otp,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+      });
+      await this.otpRepository.save(otpEntity);
 
       await this.mailService.sendAccountCreationEmail(
         newUser.email,
         newUser.username,
         registerDto.password,
-        15
+        15,
+        otp,
       );
 
       return { message: 'Registration successful' };
@@ -88,6 +89,7 @@ export class AuthService {
       }
       const otpRecord = await this.otpRepository.findOne({
         where: { user: { id: user.id }, code: otp, is_used: false },
+        relations: ['user'],
       });
       if (!otpRecord) {
         throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
@@ -412,7 +414,7 @@ export class AuthService {
   private async generateOtp(): Promise<string> {
     const otps = '0123456789';
     let otpCode = '';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       otpCode += otps.charAt(Math.floor(Math.random() * otps.length));
     }
     return otpCode;

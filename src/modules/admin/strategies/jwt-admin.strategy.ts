@@ -40,6 +40,15 @@ export class JwtAdminStrategy extends PassportStrategy(
       if (!user) {
         throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
       }
+      if (user.is_active) {
+        throw new HttpException('Account is blocked', HttpStatus.FORBIDDEN);
+      }
+      if (!user.is_verified) {
+        throw new HttpException(
+          'Account is not verified. Please verify your account before logging in.',
+          HttpStatus.FORBIDDEN,
+        );
+      }
       return user;
     } catch (error) {
       if (error instanceof HttpException) {

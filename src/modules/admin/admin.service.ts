@@ -52,19 +52,20 @@ export class AdminService {
       });
       await this.adminRepository.save(newAdmin);
 
-      // const otp = await this.generateOtp();
-      // const otpEntity: Otp = this.otpRepository.create({
-      //   user: newAdmin,
-      //   code: otp,
-      //   expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-      // });
-      // await this.otpRepository.save(otpEntity);
+      const otp = await this.generateOtp();
+      const otpEntity: Otp = this.otpRepository.create({
+        admin: newAdmin,
+        code: otp,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+      });
+      await this.otpRepository.save(otpEntity);
 
       await this.mailService.sendAccountCreationEmail(
         newAdmin.email,
         newAdmin.username,
         adminData.password,
-        15
+        15,
+        otp
       );
       return { message: 'Admin created successfully' };
     } catch (error) {
@@ -80,18 +81,21 @@ export class AdminService {
 
   async verifyAdminAccount(
     username: string,
-    code: string,
+    otp: string,
   ): Promise<{ message: string }> {
     try {
       const admin = await this.adminRepository.findOne({
         where: { username: username },
       });
+      console.log('admin', admin);
       if (!admin) {
         throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
       }
       const otpRecord = await this.otpRepository.findOne({
-        where: { user: admin, code: code },
+        where: { admin: { id: admin.id }, code: otp, is_used: false },
+        relations: ['admin'],
       });
+      console.log('otpRecord', otpRecord);
       if (!otpRecord) {
         throw new HttpException('Invalid OTP code', HttpStatus.BAD_REQUEST);
       }
@@ -104,7 +108,8 @@ export class AdminService {
       }
       admin.is_verified = true;
       await this.adminRepository.save(admin);
-      await this.otpRepository.delete({ id: otpRecord.id });
+      otpRecord.is_used = true;
+      await this.otpRepository.save(otpRecord);
       return { message: 'Admin account verified successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -541,7 +546,7 @@ export class AdminService {
   private async generateOtp(): Promise<string> {
     const otps = '0123456789';
     let otpCode = '';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       otpCode += otps.charAt(Math.floor(Math.random() * otps.length));
     }
     return otpCode;

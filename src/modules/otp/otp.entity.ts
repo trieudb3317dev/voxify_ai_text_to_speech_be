@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../user/user.entity';
+import { Admin } from '../admin/admin.entity';
 
 @Entity('otps')
 export class Otp {
@@ -12,6 +13,12 @@ export class Otp {
     onDelete: 'CASCADE',
   })
   user: User | null;
+
+  @ManyToOne(() => Admin, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  admin: Admin | null;
 
   @Column()
   code: string;

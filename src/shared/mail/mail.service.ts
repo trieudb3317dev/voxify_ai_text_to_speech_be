@@ -36,10 +36,28 @@ export class MailService {
       text: options.text,
     };
 
+    // If transporter is not configured (e.g. SMTP credentials not provided in env)
+    // the MailProvider returns null. Avoid calling sendMail on null to prevent
+    // runtime exceptions in production. Log and return a dummy result instead.
+    if (!this.transporter) {
+      console.warn(
+        `⚠️  Mail transporter not configured. Skipping email to: ${options.to}`,
+      );
+      // Return a lightweight dummy result compatible enough for callers that don't
+      // rely on full transporter response. Cast to any to satisfy the return type.
+      return Promise.resolve({
+        accepted: [],
+        rejected: [],
+        envelope: undefined,
+        messageId: 'mail-disabled',
+        response: 'Mail transporter not configured',
+      } as any);
+    }
+
     const result = await this.transporter.sendMail(mailOptions);
     console.log(`✅ Email sent to: ${options.to}`);
     return result;
-  }
+  }  
 
   async sendWelcomeEmail(
     to: string,
@@ -106,7 +124,7 @@ export class MailService {
         <li>Password: ${password}</li>
       </ul>
       <p>Vui lòng xác thực tài khoản của bạn trước khi đăng nhập.</p>
-      <p>Để xác thực, vui lòng click vào link sau: <a href="${this.configService.get<string>('FRONTEND_URL')}/verify-account?username=${username}">Xác thực tài khoản</a></p>
+      <p>Để xác thực, vui lòng click vào link sau: <a href="${this.configService.get<string>('FRONTEND_URL')}/verify-account?username=${username}&code=${otp}">Xác thực tài khoản</a></p>
       </p>
       <p>Thời gian hiệu lực của link xác thực là 15 phút.</p>
       <ul>

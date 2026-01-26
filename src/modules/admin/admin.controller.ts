@@ -42,12 +42,12 @@ export class AdminController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   @HttpCode(HttpStatus.OK)
-  @Post('verify-account')
+  @Post('verify-account/:username/:otp')
   async verifyAccount(
-    @Body('username') username: string,
-    @Body('code') code: string,
+    @Param('username') username: string,
+    @Param('otp') otp: string,
   ) {
-    return this.adminService.verifyAdminAccount(username, code);
+    return this.adminService.verifyAdminAccount(username, otp);
   }
 
   @ApiOperation({ summary: 'Admin login' })
