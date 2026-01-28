@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import * as sendgrid from '@sendgrid/mail';
 import { ConfigService } from '@nestjs/config';
 
 export interface EmailOptions {
@@ -13,6 +14,7 @@ export interface EmailOptions {
 export class MailService {
   private readonly fromEmail: string;
   private readonly fromName: string;
+  private sendGridEnabled = false;
 
   constructor(
     @Inject('MAIL_TRANSPORTER') private transporter: nodemailer.Transporter,
@@ -25,6 +27,17 @@ export class MailService {
       'SMTP_FROM_NAME',
       'NestJS App',
     );
+
+    const sgKey = this.configService.get<string>('SENDGRID_API_KEY');
+    if (sgKey) {
+      try {
+        sendgrid.setApiKey(sgKey);
+        this.sendGridEnabled = true;
+        console.log('🔁 SendGrid API enabled for mail delivery');
+      } catch (err) {
+        console.warn('⚠️  Failed to initialize SendGrid client:', err && (err.message || err));
+      }
+    }
   }
 
   async sendEmail(options: EmailOptions): Promise<nodemailer.SentMessageInfo> {
@@ -37,15 +50,31 @@ export class MailService {
     };
     console.log(`📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`);
 
+    // Prefer SendGrid HTTP API when available (more reliable from cloud hosts)
+    if (this.sendGridEnabled) {
+      try {
+        const msg = {
+          to: mailOptions.to,
+          from: { email: this.fromEmail, name: this.fromName },
+          subject: mailOptions.subject,
+          html: mailOptions.html,
+          text: mailOptions.text,
+        } as any;
+        const [response] = await sendgrid.send(msg);
+        console.log(`✅ SendGrid accepted email to: ${mailOptions.to}`);
+        return response as any;
+      } catch (err) {
+        console.error('❌ SendGrid send error:', err && (err.message || err));
+        // fall through to SMTP transporter fallback
+      }
+    }
+
     // If transporter is not configured (e.g. SMTP credentials not provided in env)
     // the MailProvider returns null. Avoid calling sendMail on null to prevent
     // runtime exceptions in production. Log and return a dummy result instead.
+    console.log('Transporter:', this.transporter ? 'configured' : 'not configured');
     if (!this.transporter) {
-      console.warn(
-        `⚠️  Mail transporter not configured. Skipping email to: ${options.to}`,
-      );
-      // Return a lightweight dummy result compatible enough for callers that don't
-      // rely on full transporter response. Cast to any to satisfy the return type.
+      console.warn(`⚠️  Mail transporter not configured. Skipping email to: ${options.to}`);
       return Promise.resolve({
         accepted: [],
         rejected: [],
