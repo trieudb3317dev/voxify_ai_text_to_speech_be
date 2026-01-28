@@ -11,6 +11,8 @@ export const MailProvider = {
     const secure = configService.get<boolean>('SMTP_SECURE', false);
 
     // Nếu không có user hoặc pass, trả về null thay vì ném lỗi
+    console.log('MailProvider: Starting mail transporter setup...');
+    console.log(`🔍 MailProvider config: host=${host}, port=${port}, userProvided=${!!user}, secure=${secure}`);
     if (!user || !pass) {
       console.log('⚠️  SMTP_USER and SMTP_PASS not configured. Mail service will be disabled.');
       console.log(`🔍 MailProvider debug: host=${host}, port=${port}, userProvided=${!!user}, secure=${secure}`);

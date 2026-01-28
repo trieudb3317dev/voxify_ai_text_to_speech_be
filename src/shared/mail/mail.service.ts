@@ -35,6 +35,7 @@ export class MailService {
       html: options.html,
       text: options.text,
     };
+    console.log(`📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`);
 
     // If transporter is not configured (e.g. SMTP credentials not provided in env)
     // the MailProvider returns null. Avoid calling sendMail on null to prevent
