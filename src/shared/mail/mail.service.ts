@@ -15,6 +15,8 @@ export class MailService {
   private readonly fromEmail: string;
   private readonly fromName: string;
   private sendGridEnabled = false;
+  private resendEnabled = false;
+  private resendApiKey?: string;
 
   constructor(
     @Inject('MAIL_TRANSPORTER') private transporter: nodemailer.Transporter,
@@ -34,9 +36,17 @@ export class MailService {
         sendgrid.setApiKey(sgKey);
         this.sendGridEnabled = true;
         console.log('🔁 SendGrid API enabled for mail delivery');
-      } catch (err) {
-        console.warn('⚠️  Failed to initialize SendGrid client:', err && (err.message || err));
+      } catch (err: unknown) {
+        const msg = err && typeof err === 'object' && 'message' in err ? (err as any).message : String(err);
+        console.warn('⚠️  Failed to initialize SendGrid client:', msg);
       }
+    }
+
+    const resendKey = this.configService.get<string>('RESEND_API_KEY');
+    if (resendKey) {
+      this.resendApiKey = resendKey;
+      this.resendEnabled = true;
+      console.log('🔁 Resend API enabled for mail delivery');
     }
   }
 
@@ -51,6 +61,45 @@ export class MailService {
     console.log(`📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`);
 
     // Prefer SendGrid HTTP API when available (more reliable from cloud hosts)
+    // Prefer Resend (if configured) -> SendGrid -> SMTP
+    if (this.resendEnabled && this.resendApiKey) {
+      try {
+        const body = {
+          from: { email: this.fromEmail, name: this.fromName },
+          to: Array.isArray(options.to) ? options.to : [options.to],
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        } as any;
+
+        // Use global fetch if available (Node 18+); otherwise use require('node-fetch') at runtime
+        const fetchFn: typeof fetch = (global as any).fetch || (await Promise.resolve().then(() => {
+          try { return require('node-fetch'); } catch { return undefined; }
+        }));
+
+        const resp = await fetchFn('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.resendApiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          console.log(`✅ Resend accepted email to: ${mailOptions.to}`, data);
+          return data as any;
+        } else {
+          console.error('❌ Resend send error:', resp.status, data);
+          // fall through to SendGrid/SMPP fallback
+        }
+      } catch (err: any) {
+        console.error('❌ Resend send exception:', err && (err.message || err));
+        // fall through to next provider
+      }
+    }
+
     if (this.sendGridEnabled) {
       try {
         const msg = {
@@ -63,8 +112,16 @@ export class MailService {
         const [response] = await sendgrid.send(msg);
         console.log(`✅ SendGrid accepted email to: ${mailOptions.to}`);
         return response as any;
-      } catch (err) {
+      } catch (err: any) {
         console.error('❌ SendGrid send error:', err && (err.message || err));
+        // Log detailed SendGrid response body when available (contains errors array)
+        try {
+          if (err && err.response && err.response.body) {
+            console.error('❌ SendGrid response body:', JSON.stringify(err.response.body));
+          }
+        } catch (loggingErr) {
+          // ignore
+        }
         // fall through to SMTP transporter fallback
       }
     }
