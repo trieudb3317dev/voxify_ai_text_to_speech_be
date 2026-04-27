@@ -37,7 +37,10 @@ export class MailService {
         this.sendGridEnabled = true;
         console.log('🔁 SendGrid API enabled for mail delivery');
       } catch (err: unknown) {
-        const msg = err && typeof err === 'object' && 'message' in err ? (err as any).message : String(err);
+        const msg =
+          err && typeof err === 'object' && 'message' in err
+            ? (err as any).message
+            : String(err);
         console.warn('⚠️  Failed to initialize SendGrid client:', msg);
       }
     }
@@ -58,24 +61,33 @@ export class MailService {
       html: options.html,
       text: options.text,
     };
-    console.log(`📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`);
+    console.log(
+      `📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`,
+    );
 
     // Prefer SendGrid HTTP API when available (more reliable from cloud hosts)
     // Prefer Resend (if configured) -> SendGrid -> SMTP
     if (this.resendEnabled && this.resendApiKey) {
       try {
-        const body = {
-          from: { email: this.fromEmail, name: this.fromName },
-          to: Array.isArray(options.to) ? options.to : [options.to],
-          subject: options.subject,
-          html: options.html,
-          text: options.text,
-        } as any;
+            const body = {
+              to: Array.isArray(options.to) ? options.to : [options.to],
+              // Resend expects `from` to be a string like 'Name <email@domain.com>' or just the email
+              from: this.fromName ? `${this.fromName} <${this.fromEmail}>` : this.fromEmail,
+              subject: options.subject,
+              html: options.html,
+              text: options.text,
+            } as any;
 
         // Use global fetch if available (Node 18+); otherwise use require('node-fetch') at runtime
-        const fetchFn: typeof fetch = (global as any).fetch || (await Promise.resolve().then(() => {
-          try { return require('node-fetch'); } catch { return undefined; }
-        }));
+        const fetchFn: typeof fetch =
+          (global as any).fetch ||
+          (await Promise.resolve().then(() => {
+            try {
+              return require('node-fetch');
+            } catch {
+              return undefined;
+            }
+          }));
 
         const resp = await fetchFn('https://api.resend.com/emails', {
           method: 'POST',
@@ -92,6 +104,8 @@ export class MailService {
           return data as any;
         } else {
           console.error('❌ Resend send error:', resp.status, data);
+              // if Resend returns validation errors, include them in logs for easier debugging
+              if (data && data.message) console.error('Resend message:', data.message);
           // fall through to SendGrid/SMPP fallback
         }
       } catch (err: any) {
@@ -117,7 +131,10 @@ export class MailService {
         // Log detailed SendGrid response body when available (contains errors array)
         try {
           if (err && err.response && err.response.body) {
-            console.error('❌ SendGrid response body:', JSON.stringify(err.response.body));
+            console.error(
+              '❌ SendGrid response body:',
+              JSON.stringify(err.response.body),
+            );
           }
         } catch (loggingErr) {
           // ignore
@@ -129,9 +146,14 @@ export class MailService {
     // If transporter is not configured (e.g. SMTP credentials not provided in env)
     // the MailProvider returns null. Avoid calling sendMail on null to prevent
     // runtime exceptions in production. Log and return a dummy result instead.
-    console.log('Transporter:', this.transporter ? 'configured' : 'not configured');
+    console.log(
+      'Transporter:',
+      this.transporter ? 'configured' : 'not configured',
+    );
     if (!this.transporter) {
-      console.warn(`⚠️  Mail transporter not configured. Skipping email to: ${options.to}`);
+      console.warn(
+        `⚠️  Mail transporter not configured. Skipping email to: ${options.to}`,
+      );
       return Promise.resolve({
         accepted: [],
         rejected: [],
@@ -144,7 +166,7 @@ export class MailService {
     const result = await this.transporter.sendMail(mailOptions);
     console.log(`✅ Email sent to: ${options.to}`);
     return result;
-  }  
+  }
 
   async sendWelcomeEmail(
     to: string,
