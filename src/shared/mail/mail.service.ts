@@ -69,14 +69,14 @@ export class MailService {
     // Prefer Resend (if configured) -> SendGrid -> SMTP
     if (this.resendEnabled && this.resendApiKey) {
       try {
-            const body = {
-              to: Array.isArray(options.to) ? options.to : [options.to],
-              // Resend expects `from` to be a string like 'Name <email@domain.com>' or just the email
-              from: this.fromName ? `${this.fromName} <${this.fromEmail}>` : this.fromEmail,
-              subject: options.subject,
-              html: options.html,
-              text: options.text,
-            } as any;
+        console.log('🔁 From:', this.fromEmail);
+        const body = {
+          to: Array.isArray(options.to) ? options.to : [options.to],
+          from: this.fromEmail,
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        } as any;
 
         // Use global fetch if available (Node 18+); otherwise use require('node-fetch') at runtime
         const fetchFn: typeof fetch =
@@ -104,8 +104,9 @@ export class MailService {
           return data as any;
         } else {
           console.error('❌ Resend send error:', resp.status, data);
-              // if Resend returns validation errors, include them in logs for easier debugging
-              if (data && data.message) console.error('Resend message:', data.message);
+          // if Resend returns validation errors, include them in logs for easier debugging
+          if (data && data.message)
+            console.error('Resend message:', data.message);
           // fall through to SendGrid/SMPP fallback
         }
       } catch (err: any) {
