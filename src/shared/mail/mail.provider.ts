@@ -39,6 +39,13 @@ export const MailProvider = {
         secure: secure || port === 465,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
+        // helpful for production diagnostics
+        logger: true,
+        debug: true,
+        // connection timeouts in ms to fail fast on blocked ports
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
       });
 
       console.log(

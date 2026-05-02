@@ -29,7 +29,6 @@ export class MailService {
       'SMTP_FROM_NAME',
       'NestJS App',
     );
-
   }
 
   async sendEmail(options: EmailOptions): Promise<nodemailer.SentMessageInfo> {
@@ -48,6 +47,7 @@ export class MailService {
       'Transporter:',
       this.transporter ? 'configured' : 'not configured',
     );
+
     if (!this.transporter) {
       console.warn(
         `⚠️  Mail transporter not configured. Skipping email to: ${options.to}`,
@@ -61,9 +61,28 @@ export class MailService {
       } as any);
     }
 
-    const result = await this.transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent to: ${options.to}`);
-    return result;
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent to: ${options.to}`, {
+        messageId: (result as any).messageId,
+      });
+      return result;
+    } catch (err: any) {
+      // log detailed error for production debugging
+      try {
+        console.error('❌ sendMail failed:', err && (err.message || err), {
+          code: err && err.code,
+          response: err && err.response,
+          stack: err && err.stack,
+        });
+      } catch (logErr) {
+        console.error(
+          '❌ sendMail failed (unable to serialize error):',
+          String(err),
+        );
+      }
+      throw err;
+    }
   }
 
   async sendWelcomeEmail(
