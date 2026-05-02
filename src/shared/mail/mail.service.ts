@@ -30,27 +30,6 @@ export class MailService {
       'NestJS App',
     );
 
-    const sgKey = this.configService.get<string>('SENDGRID_API_KEY');
-    if (sgKey) {
-      try {
-        sendgrid.setApiKey(sgKey);
-        this.sendGridEnabled = true;
-        console.log('🔁 SendGrid API enabled for mail delivery');
-      } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'message' in err
-            ? (err as any).message
-            : String(err);
-        console.warn('⚠️  Failed to initialize SendGrid client:', msg);
-      }
-    }
-
-    const resendKey = this.configService.get<string>('RESEND_API_KEY');
-    if (resendKey) {
-      this.resendApiKey = resendKey;
-      this.resendEnabled = true;
-      console.log('🔁 Resend API enabled for mail delivery');
-    }
   }
 
   async sendEmail(options: EmailOptions): Promise<nodemailer.SentMessageInfo> {
@@ -65,88 +44,6 @@ export class MailService {
       `📧 Sending email to: ${mailOptions.to} with subject: "${mailOptions.subject}"`,
     );
 
-    // Prefer SendGrid HTTP API when available (more reliable from cloud hosts)
-    // Prefer Resend (if configured) -> SendGrid -> SMTP
-    if (this.resendEnabled && this.resendApiKey) {
-      try {
-        console.log('🔁 From:', this.fromEmail);
-        const body = {
-          to: Array.isArray(options.to) ? options.to : [options.to],
-          from: this.fromEmail,
-          subject: options.subject,
-          html: options.html,
-          text: options.text,
-        } as any;
-
-        // Use global fetch if available (Node 18+); otherwise use require('node-fetch') at runtime
-        const fetchFn: typeof fetch =
-          (global as any).fetch ||
-          (await Promise.resolve().then(() => {
-            try {
-              return require('node-fetch');
-            } catch {
-              return undefined;
-            }
-          }));
-
-        const resp = await fetchFn('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.resendApiKey}`,
-          },
-          body: JSON.stringify(body),
-        });
-
-        const data = await resp.json().catch(() => ({}));
-        if (resp.ok) {
-          console.log(`✅ Resend accepted email to: ${mailOptions.to}`, data);
-          return data as any;
-        } else {
-          console.error('❌ Resend send error:', resp.status, data);
-          // if Resend returns validation errors, include them in logs for easier debugging
-          if (data && data.message)
-            console.error('Resend message:', data.message);
-          // fall through to SendGrid/SMPP fallback
-        }
-      } catch (err: any) {
-        console.error('❌ Resend send exception:', err && (err.message || err));
-        // fall through to next provider
-      }
-    }
-
-    if (this.sendGridEnabled) {
-      try {
-        const msg = {
-          to: mailOptions.to,
-          from: { email: this.fromEmail, name: this.fromName },
-          subject: mailOptions.subject,
-          html: mailOptions.html,
-          text: mailOptions.text,
-        } as any;
-        const [response] = await sendgrid.send(msg);
-        console.log(`✅ SendGrid accepted email to: ${mailOptions.to}`);
-        return response as any;
-      } catch (err: any) {
-        console.error('❌ SendGrid send error:', err && (err.message || err));
-        // Log detailed SendGrid response body when available (contains errors array)
-        try {
-          if (err && err.response && err.response.body) {
-            console.error(
-              '❌ SendGrid response body:',
-              JSON.stringify(err.response.body),
-            );
-          }
-        } catch (loggingErr) {
-          // ignore
-        }
-        // fall through to SMTP transporter fallback
-      }
-    }
-
-    // If transporter is not configured (e.g. SMTP credentials not provided in env)
-    // the MailProvider returns null. Avoid calling sendMail on null to prevent
-    // runtime exceptions in production. Log and return a dummy result instead.
     console.log(
       'Transporter:',
       this.transporter ? 'configured' : 'not configured',
