@@ -70,13 +70,13 @@ export class MailService {
     } catch (err: any) {
       // log detailed error for production debugging
       try {
-        console.error('❌ sendMail failed:', err && (err.message || err), {
+        console.log('❌ sendMail failed:', err && (err.message || err), {
           code: err && err.code,
           response: err && err.response,
           stack: err && err.stack,
         });
       } catch (logErr) {
-        console.error(
+        console.log(
           '❌ sendMail failed (unable to serialize error):',
           String(err),
         );
