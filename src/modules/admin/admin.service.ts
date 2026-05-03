@@ -60,13 +60,13 @@ export class AdminService {
       });
       await this.otpRepository.save(otpEntity);
 
-      await this.mailService.sendAccountCreationEmail(
-        newAdmin.email,
-        newAdmin.username,
-        adminData.password,
-        15,
-        otp
-      );
+      // await this.mailService.sendAccountCreationEmail(
+      //   newAdmin.email,
+      //   newAdmin.username,
+      //   adminData.password,
+      //   15,
+      //   otp
+      // );
       return { message: 'Admin created successfully' };
     } catch (error) {
       if (error instanceof HttpException) {

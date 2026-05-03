@@ -50,13 +50,13 @@ export class AuthService {
       });
       await this.otpRepository.save(otpEntity);
 
-      await this.mailService.sendAccountCreationEmail(
-        newUser.email,
-        newUser.username,
-        registerDto.password,
-        15,
-        otp,
-      );
+      // await this.mailService.sendAccountCreationEmail(
+      //   newUser.email,
+      //   newUser.username,
+      //   registerDto.password,
+      //   15,
+      //   otp,
+      // );
 
       return { message: 'Registration successful' };
     } catch (error) {
