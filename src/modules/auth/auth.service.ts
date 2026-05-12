@@ -13,6 +13,8 @@ import { MailService } from 'src/shared/mail/mail.service';
 export class AuthService {
   // Implement authentication service methods here
   protected readonly logger = new Logger(AuthService.name);
+  private readonly MAILER_SERVICE_URL: string;
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -20,9 +22,10 @@ export class AuthService {
     private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
-    private MAILER_SERVICE_URL: string = process.env.MAILER_SERVICE_URL ||
-      'https://mailer-service-custom.vercel.app',
-  ) {}
+  ) {
+    this.MAILER_SERVICE_URL = process.env.MAILER_SERVICE_URL ||
+      'https://mailer-service-custom.vercel.app';
+  }
 
   async register(registerDto: CreateUserDto): Promise<{ message: string }> {
     try {
@@ -58,7 +61,7 @@ export class AuthService {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-          fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
+          await fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -118,9 +121,8 @@ export class AuthService {
         );
         throw error;
       }
-      this.logger.error(
-        `Registration failed for user ${registerDto.username}: ${error.message}`,
-      );
+      const regMsg2 = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+      this.logger.error(`Registration failed for user ${registerDto.username}: ${regMsg2}`);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -160,9 +162,8 @@ export class AuthService {
       return { message: 'User verified successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(
-          `User verification failed for user ${username}: ${error.message}`,
-        );
+        const vmsg = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+        this.logger.error(`User verification failed for user ${username}: ${vmsg}`);
         throw error;
       }
       throw new HttpException(
@@ -440,9 +441,8 @@ export class AuthService {
       return user;
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(
-          `Validation failed for user ${username}: ${error.message}`,
-        );
+        const vmsg2 = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+        this.logger.error(`Validation failed for user ${username}: ${vmsg2}`);
         throw error;
       }
       throw new HttpException(

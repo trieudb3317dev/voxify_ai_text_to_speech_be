@@ -30,9 +30,12 @@ export class AdminService {
     private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
-    private MAILER_SERVICE_URL: string = process.env.MAILER_SERVICE_URL ||
-      'https://mailer-service-custom.vercel.app',
-  ) {}
+  ) {
+    this.MAILER_SERVICE_URL = process.env.MAILER_SERVICE_URL ||
+      'https://mailer-service-custom.vercel.app';
+  }
+
+  private MAILER_SERVICE_URL: string;
 
   async create(adminData: CreateAdminDto): Promise<{ message: string }> {
     try {
@@ -68,7 +71,7 @@ export class AdminService {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-          fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
+          await fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
