@@ -20,6 +20,8 @@ export class AuthService {
     private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private MAILER_SERVICE_URL: string = process.env.MAILER_SERVICE_URL ||
+      'https://mailer-service-custom.vercel.app',
   ) {}
 
   async register(registerDto: CreateUserDto): Promise<{ message: string }> {
@@ -50,16 +52,31 @@ export class AuthService {
       });
       await this.otpRepository.save(otpEntity);
 
-      // await this.mailService.sendAccountCreationEmail(
-      //   newUser.email,
-      //   newUser.username,
-      //   registerDto.password,
-      //   15,
-      //   otp,
-      // );
+      // call third api to send email
+      this.MAILER_SERVICE_URL &&
+        (await fetch(
+          `${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template_name: 'approve',
+              to: registerDto.email,
+              subject: 'Registration Verification Code',
+              context: {
+                user: {
+                  passcode: otp,
+                  full_name: registerDto.username,
+                  email: registerDto.email,
+                },
+                verification_link: `http://localhost:3000/verify?username=${registerDto.username}&otp=${otp}`,
+              },
+            }),
+          },
+        ));
 
       return { message: 'Registration successful' };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof HttpException) {
         this.logger.error(
           `Registration failed for user ${registerDto.username}: ${error.message}`,

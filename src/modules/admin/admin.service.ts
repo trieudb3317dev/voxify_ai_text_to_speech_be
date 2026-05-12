@@ -30,6 +30,8 @@ export class AdminService {
     private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private MAILER_SERVICE_URL: string = process.env.MAILER_SERVICE_URL ||
+      'https://mailer-service-custom.vercel.app',
   ) {}
 
   async create(adminData: CreateAdminDto): Promise<{ message: string }> {
@@ -60,13 +62,28 @@ export class AdminService {
       });
       await this.otpRepository.save(otpEntity);
 
-      // await this.mailService.sendAccountCreationEmail(
-      //   newAdmin.email,
-      //   newAdmin.username,
-      //   adminData.password,
-      //   15,
-      //   otp
-      // );
+      // call third api to send email
+      this.MAILER_SERVICE_URL &&
+        (await fetch(
+          `${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template_name: 'approve',
+              to: adminData.email,
+              subject: 'Registration Successful - Please Verify Your Admin Account',
+              context: {
+                user: {
+                  passcode: otp,
+                  full_name: adminData.username,
+                  email: adminData.email,
+                },
+                verification_link: `http://localhost:3000/verify?username=${adminData.username}&otp=${otp}`,
+              },
+            }),
+          },
+        ));
       return { message: 'Admin created successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -301,7 +318,7 @@ export class AdminService {
       // Add logic to send notification email to the admin about account status change
       await this.mailService.sendAccountBlockedEmail(
         admin.email,
-        admin.username
+        admin.username,
       );
       return { message: 'Admin account blocked successfully' };
     } catch (error) {
@@ -326,10 +343,7 @@ export class AdminService {
       await this.userRepository.update(userId, { is_active: true });
 
       // Add logic to send notification email to the user about account status change
-      await this.mailService.sendAccountBlockedEmail(
-        user.email,
-        user.username
-      );
+      await this.mailService.sendAccountBlockedEmail(user.email, user.username);
       return { message: 'User account blocked successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -357,7 +371,12 @@ export class AdminService {
     | AdminResponseDto[]
   > {
     try {
-      const { page = 1, limit = 10, sortBy = 'created_at', order = 'ASC' } = query;
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'created_at',
+        order = 'ASC',
+      } = query;
       const admins = await this.adminRepository.find({
         where: { is_active: false },
       });
@@ -438,7 +457,12 @@ export class AdminService {
     | UserResponseDto[]
   > {
     try {
-      const { page = 1, limit = 10, sortBy = 'created_at', order = 'ASC' } = query;
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'created_at',
+        order = 'ASC',
+      } = query;
       const users = await this.userRepository.find({
         where: { is_active: false },
       });
