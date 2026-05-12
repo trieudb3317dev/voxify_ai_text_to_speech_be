@@ -62,17 +62,20 @@ export class AdminService {
       });
       await this.otpRepository.save(otpEntity);
 
-      // call third api to send email
-      this.MAILER_SERVICE_URL &&
-        (await fetch(
-          `${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`,
-          {
+      // call third api to send email (fire-and-forget with timeout)
+      if (this.MAILER_SERVICE_URL) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+          fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               template_name: 'registration',
               to: adminData.email,
-              subject: 'Registration Successful - Please Verify Your Admin Account',
+              subject:
+                'Registration Successful - Please Verify Your Admin Account',
               context: {
                 user: {
                   passcode: otp,
@@ -82,15 +85,48 @@ export class AdminService {
                 verification_link: `http://localhost:3000/verify?username=${adminData.username}&otp=${otp}`,
               },
             }),
-          },
-        ));
+            signal: controller.signal as any,
+          })
+            .then(async (res) => {
+              clearTimeout(timeout);
+              try {
+                const json = await res.json().catch(() => null);
+                this.logger.log(
+                  `Mailer service response for ${adminData.email}: ${res.status} ${JSON.stringify(json)}`,
+                );
+              } catch (e) {
+                this.logger.warn(
+                  `Mailer service responded with status ${res.status} but body parse failed`,
+                );
+              }
+            })
+            .catch((err) => {
+              clearTimeout(timeout);
+              if (err.name === 'AbortError') {
+                this.logger.warn(
+                  `Mailer service request aborted (timeout) for ${adminData.email}`,
+                );
+              } else {
+                this.logger.error(
+                  `Mailer service request failed for ${adminData.email}: ${String(err)}`,
+                );
+              }
+            });
+        } catch (err) {
+          this.logger.error('Failed to trigger mailer service: ' + String(err));
+        }
+      }
       return { message: 'Admin created successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
+      const msg =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       throw new HttpException(
-        `Failed to create admin: ${error.message}`,
+        `Failed to create admin: ${msg}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -166,13 +202,21 @@ export class AdminService {
       return { message: 'Login successful' };
     } catch (error) {
       if (error instanceof HttpException) {
+        const loginMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
         this.logger.error(
-          `Login failed for user ${loginDto.username}: ${error.message}`,
+          `Login failed for user ${loginDto.username}: ${loginMsg}`,
         );
         throw error;
       }
+      const loginMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       this.logger.error(
-        `Login failed for user ${loginDto.username}: ${error.message}`,
+        `Login failed for user ${loginDto.username}: ${loginMsg2}`,
       );
       throw new HttpException(
         'Internal server error',
@@ -204,14 +248,16 @@ export class AdminService {
       return { message: 'Logout successful' };
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(`Logout failed: ${error.message}`);
+        const logoutMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
+        this.logger.error(`Logout failed: ${logoutMsg}`);
         throw error;
       }
-      this.logger.error(`Logout failed: ${error.message}`);
-      throw new HttpException(
-        'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const logoutMsg2 = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+      this.logger.error(`Logout failed: ${logoutMsg2}`);
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -226,9 +272,8 @@ export class AdminService {
       return user;
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(
-          `Validation failed for user ${username}: ${error.message}`,
-        );
+        const vmsg = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+        this.logger.error(`Validation failed for user ${username}: ${vmsg}`);
         throw error;
       }
       throw new HttpException(
@@ -297,8 +342,12 @@ export class AdminService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const msg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       throw new HttpException(
-        `Internal server error: ${error.message}`,
+        `Internal server error: ${msg2}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -325,8 +374,12 @@ export class AdminService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const msg3 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       throw new HttpException(
-        `Internal server error: ${error.message}`,
+        `Internal server error: ${msg3}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -349,8 +402,12 @@ export class AdminService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const msg4 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       throw new HttpException(
-        `Internal server error: ${error.message}`,
+        `Internal server error: ${msg4}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -435,8 +492,12 @@ export class AdminService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const msg5 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       throw new HttpException(
-        `Internal server error: ${error.message}`,
+        `Internal server error: ${msg5}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -519,10 +580,8 @@ export class AdminService {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new HttpException(
-        `Internal server error: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const emsg = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+      throw new HttpException(`Internal server error: ${emsg}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

@@ -52,11 +52,13 @@ export class AuthService {
       });
       await this.otpRepository.save(otpEntity);
 
-      // call third api to send email
-      this.MAILER_SERVICE_URL &&
-        (await fetch(
-          `${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`,
-          {
+      // call third api to send email (fire-and-forget with timeout)
+      if (this.MAILER_SERVICE_URL) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+          fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -72,14 +74,47 @@ export class AuthService {
                 verification_link: `http://localhost:3000/verify?username=${registerDto.username}&otp=${otp}`,
               },
             }),
-          },
-        ));
+            signal: controller.signal as any,
+          })
+            .then(async (res) => {
+              clearTimeout(timeout);
+              try {
+                const json = await res.json().catch(() => null);
+                this.logger.log(
+                  `Mailer service response for ${registerDto.email}: ${res.status} ${JSON.stringify(json)}`,
+                );
+              } catch (e) {
+                this.logger.warn(
+                  `Mailer service responded with status ${res.status} but body parse failed`,
+                );
+              }
+            })
+            .catch((err) => {
+              clearTimeout(timeout);
+              if (err && (err as any).name === 'AbortError') {
+                this.logger.warn(
+                  `Mailer service request aborted (timeout) for ${registerDto.email}`,
+                );
+              } else {
+                this.logger.error(
+                  `Mailer service request failed for ${registerDto.email}: ${String(err)}`,
+                );
+              }
+            });
+        } catch (err) {
+          this.logger.error('Failed to trigger mailer service: ' + String(err));
+        }
+      }
 
       return { message: 'Registration successful' };
     } catch (error: any) {
       if (error instanceof HttpException) {
+        const regMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
         this.logger.error(
-          `Registration failed for user ${registerDto.username}: ${error.message}`,
+          `Registration failed for user ${registerDto.username}: ${regMsg}`,
         );
         throw error;
       }
@@ -166,13 +201,21 @@ export class AuthService {
       return { message: 'Login successful' };
     } catch (error) {
       if (error instanceof HttpException) {
+        const loginMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
         this.logger.error(
-          `Login failed for user ${loginDto.username}: ${error.message}`,
+          `Login failed for user ${loginDto.username}: ${loginMsg}`,
         );
         throw error;
       }
+      const loginMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
       this.logger.error(
-        `Login failed for user ${loginDto.username}: ${error.message}`,
+        `Login failed for user ${loginDto.username}: ${loginMsg2}`,
       );
       throw new HttpException(
         'Internal server error',
@@ -259,14 +302,20 @@ export class AuthService {
       return { message: 'OTP sent to your email' };
     } catch (error) {
       if (error instanceof HttpException) {
+        const fpMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
         this.logger.error(
-          `Forgot password failed for email ${email}: ${error.message}`,
+          `Forgot password failed for email ${email}: ${fpMsg}`,
         );
         throw error;
       }
-      this.logger.error(
-        `Forgot password failed for email ${email}: ${error.message}`,
-      );
+      const fpMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
+      this.logger.error(`Forgot password failed for email ${email}: ${fpMsg2}`);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -319,10 +368,18 @@ export class AuthService {
       return { message: 'Password reset successful' };
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(`Reset password failed: ${error.message}`);
+        const rpMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
+        this.logger.error(`Reset password failed: ${rpMsg}`);
         throw error;
       }
-      this.logger.error(`Reset password failed: ${error.message}`);
+      const rpMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
+      this.logger.error(`Reset password failed: ${rpMsg2}`);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -353,10 +410,18 @@ export class AuthService {
       return { message: 'Logout successful' };
     } catch (error) {
       if (error instanceof HttpException) {
-        this.logger.error(`Logout failed: ${error.message}`);
+        const loMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
+        this.logger.error(`Logout failed: ${loMsg}`);
         throw error;
       }
-      this.logger.error(`Logout failed: ${error.message}`);
+      const loMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
+      this.logger.error(`Logout failed: ${loMsg2}`);
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
