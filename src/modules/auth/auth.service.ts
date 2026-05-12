@@ -60,7 +60,7 @@ export class AuthService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              template_name: 'approve',
+              template_name: 'registration',
               to: registerDto.email,
               subject: 'Registration Verification Code',
               context: {

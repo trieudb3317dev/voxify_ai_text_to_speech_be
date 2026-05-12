@@ -70,7 +70,7 @@ export class AdminService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              template_name: 'approve',
+              template_name: 'registration',
               to: adminData.email,
               subject: 'Registration Successful - Please Verify Your Admin Account',
               context: {
