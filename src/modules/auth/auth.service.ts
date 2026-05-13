@@ -23,7 +23,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
   ) {
-    this.MAILER_SERVICE_URL = process.env.MAILER_SERVICE_URL ||
+    this.MAILER_SERVICE_URL =
+      process.env.MAILER_SERVICE_URL ||
       'https://mailer-service-custom.vercel.app';
   }
 
@@ -57,56 +58,61 @@ export class AuthService {
 
       // call third api to send email (fire-and-forget with timeout)
       if (this.MAILER_SERVICE_URL) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-          await fetch(`${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              template_name: 'registration',
-              to: registerDto.email,
-              subject: 'Registration Verification Code',
-              context: {
-                user: {
-                  passcode: otp,
-                  full_name: registerDto.username,
-                  email: registerDto.email,
+        // fire-and-forget but with retry/backoff; increase timeout from 5s to 15s
+        (async () => {
+          const maxAttempts = 2;
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const controller = new AbortController();
+            const timeoutMs = 15000; // 15s
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const res = await fetch(
+                `${this.MAILER_SERVICE_URL}/api/v1/mail/registration-email`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    template_name: 'registration',
+                    to: registerDto.email,
+                    subject: 'Registration Verification Code',
+                    context: {
+                      user: {
+                        passcode: otp,
+                        full_name: registerDto.username,
+                        email: registerDto.email,
+                      },
+                      verification_link: `http://localhost:3000/verify?username=${registerDto.username}&otp=${otp}`,
+                    },
+                  }),
+                  signal: controller.signal as any,
                 },
-                verification_link: `http://localhost:3000/verify?username=${registerDto.username}&otp=${otp}`,
-              },
-            }),
-            signal: controller.signal as any,
-          })
-            .then(async (res) => {
+              );
               clearTimeout(timeout);
-              try {
-                const json = await res.json().catch(() => null);
-                this.logger.log(
-                  `Mailer service response for ${registerDto.email}: ${res.status} ${JSON.stringify(json)}`,
-                );
-              } catch (e) {
-                this.logger.warn(
-                  `Mailer service responded with status ${res.status} but body parse failed`,
-                );
-              }
-            })
-            .catch((err) => {
+              const json = await res.json().catch(() => null);
+              this.logger.log(
+                `Mailer service response for ${registerDto.email} (attempt ${attempt}): ${res.status} ${JSON.stringify(json)}`,
+              );
+              break; // success
+            } catch (err) {
               clearTimeout(timeout);
-              if (err && (err as any).name === 'AbortError') {
+              const isAbort = err && (err as any).name === 'AbortError';
+              if (isAbort) {
                 this.logger.warn(
-                  `Mailer service request aborted (timeout) for ${registerDto.email}`,
+                  `Mailer service request aborted (timeout ${timeoutMs}ms) for ${registerDto.email} (attempt ${attempt})`,
                 );
               } else {
-                this.logger.error(
-                  `Mailer service request failed for ${registerDto.email}: ${String(err)}`,
+                this.logger.warn(
+                  `Mailer service request failed for ${registerDto.email} (attempt ${attempt}): ${String(err)}`,
                 );
               }
-            });
-        } catch (err) {
-          this.logger.error('Failed to trigger mailer service: ' + String(err));
-        }
+              if (attempt < maxAttempts) {
+                // small backoff before retry
+                await new Promise((r) => setTimeout(r, 1000 * attempt));
+                continue;
+              }
+            }
+          }
+        })();
       }
 
       return { message: 'Registration successful' };
@@ -121,8 +127,13 @@ export class AuthService {
         );
         throw error;
       }
-      const regMsg2 = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
-      this.logger.error(`Registration failed for user ${registerDto.username}: ${regMsg2}`);
+      const regMsg2 =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as any).message
+          : String(error);
+      this.logger.error(
+        `Registration failed for user ${registerDto.username}: ${regMsg2}`,
+      );
       throw new HttpException(
         'Internal server error',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -162,8 +173,13 @@ export class AuthService {
       return { message: 'User verified successfully' };
     } catch (error) {
       if (error instanceof HttpException) {
-        const vmsg = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
-        this.logger.error(`User verification failed for user ${username}: ${vmsg}`);
+        const vmsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
+        this.logger.error(
+          `User verification failed for user ${username}: ${vmsg}`,
+        );
         throw error;
       }
       throw new HttpException(
@@ -441,7 +457,10 @@ export class AuthService {
       return user;
     } catch (error) {
       if (error instanceof HttpException) {
-        const vmsg2 = error && typeof error === 'object' && 'message' in error ? (error as any).message : String(error);
+        const vmsg2 =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as any).message
+            : String(error);
         this.logger.error(`Validation failed for user ${username}: ${vmsg2}`);
         throw error;
       }
