@@ -86,6 +86,7 @@ export class AdminService {
                     to: adminData.email,
                     subject: 'Registration Verification Code',
                     context: {
+                      app_name: 'Recipe Sharing Platform',
                       user: {
                         passcode: otp,
                         full_name: adminData.username,

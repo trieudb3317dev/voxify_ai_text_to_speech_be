@@ -76,6 +76,7 @@ export class AuthService {
                     to: registerDto.email,
                     subject: 'Registration Verification Code',
                     context: {
+                      app_name: 'Recipe Sharing Platform',
                       user: {
                         passcode: otp,
                         full_name: registerDto.username,
@@ -92,7 +93,7 @@ export class AuthService {
               this.logger.log(
                 `Mailer service response for ${registerDto.email} (attempt ${attempt}): ${res.status} ${JSON.stringify(json)}`,
               );
-              break; // success
+              return { message: 'Registration successful' };
             } catch (err) {
               clearTimeout(timeout);
               const isAbort = err && (err as any).name === 'AbortError';
@@ -110,12 +111,23 @@ export class AuthService {
                 await new Promise((r) => setTimeout(r, 1000 * attempt));
                 continue;
               }
+              throw new HttpException(
+                'Failed to send verification email',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              );
             }
           }
         })();
+      } else {
+        this.logger.warn(
+          `MAILER_SERVICE_URL not configured. Skipping sending verification email to ${registerDto.email}`,
+        );
+        return {
+          message: 'Registration successful (verification email not sent)',
+        };
       }
 
-      return { message: 'Registration successful' };
+      // return { message: 'Registration successful' };
     } catch (error: any) {
       if (error instanceof HttpException) {
         const regMsg =
